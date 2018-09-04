@@ -25,7 +25,6 @@
 #define HAL_TIM_MODULE_ENABLED
 //}}}
 
-
 #if !defined  (HSE_VALUE)
   #define HSE_VALUE    ((uint32_t)8000000) /*!< Value of the External oscillator in Hz */
 #endif
@@ -69,7 +68,6 @@
 #define VDD_VALUE         ((uint32_t)3300) /*!< Value of VDD in mv */
 #define TICK_INT_PRIORITY ((uint32_t)0x0F) /*!< tick interrupt priority */
 #define USE_RTOS         0
-
 #define USE_SPI_CRC    1U
 
 //{{{  module includes
@@ -251,7 +249,7 @@
   void assert_failed(uint8_t* file, uint32_t line);
 #else
   #define assert_param(expr) ((void)0)
-#endif /* USE_FULL_ASSERT */
+#endif 
 
 //{{{
 #ifdef __cplusplus

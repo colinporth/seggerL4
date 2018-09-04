@@ -1,49 +1,18 @@
 /*********************************************************************
-*                    SEGGER Microcontroller GmbH                     *
+*                SEGGER Microcontroller GmbH & Co. KG                *
 *                        The Embedded Experts                        *
 **********************************************************************
 *                                                                    *
-*            (c) 2014 - 2018 SEGGER Microcontroller GmbH             *
+*       (c) 1995 - 2016 SEGGER Microcontroller GmbH & Co. KG         *
 *                                                                    *
-*           www.segger.com     Support: support@segger.com           *
-*                                                                    *
-**********************************************************************
-*                                                                    *
-* All rights reserved.                                               *
-*                                                                    *
-* Redistribution and use in source and binary forms, with or         *
-* without modification, are permitted provided that the following    *
-* conditions are met:                                                *
-*                                                                    *
-* - Redistributions of source code must retain the above copyright   *
-*   notice, this list of conditions and the following disclaimer.    *
-*                                                                    *
-* - Neither the name of SEGGER Microcontroller GmbH                  *
-*   nor the names of its contributors may be used to endorse or      *
-*   promote products derived from this software without specific     *
-*   prior written permission.                                        *
-*                                                                    *
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND             *
-* CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,        *
-* INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF           *
-* MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE           *
-* DISCLAIMED.                                                        *
-* IN NO EVENT SHALL SEGGER Microcontroller GmbH BE LIABLE FOR        *
-* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR           *
-* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT  *
-* OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;    *
-* OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF      *
-* LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT          *
-* (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE  *
-* USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH   *
-* DAMAGE.                                                            *
+*     Internet: segger.com   Support: support_embos@segger.com       *
 *                                                                    *
 **********************************************************************
 
---------  END-OF-HEADER  ---------------------------------------------
+----------------------------------------------------------------------
 File    : SEGGER_HardFaultHandler.c
 Purpose : Generic SEGGER HardFault handler for Cortex-M
-----------------------------------------------------------------------
+--------  END-OF-HEADER  ---------------------------------------------
 */
 
 /*********************************************************************
@@ -203,10 +172,9 @@ void HardFaultHandler(unsigned int* pStack) {
     NVIC_HFSR |=  (1u << 31);     // Reset Hard Fault status
     *(pStack + 6u) += 2u;         // PC is located on stack at SP + 24 bytes. Increment PC by 2 to skip break instruction.
     return;                       // Return to interrupted application
-  }
+    }
   //
   // Read NVIC registers
-  //
   HardFaultRegs.syshndctrl.byte = SYSHND_CTRL;  // System Handler Control and State Register
   HardFaultRegs.mfsr.byte       = NVIC_MFSR;    // Memory Fault Status Register
   HardFaultRegs.bfsr.byte       = NVIC_BFSR;    // Bus Fault Status Register
@@ -215,16 +183,10 @@ void HardFaultHandler(unsigned int* pStack) {
   HardFaultRegs.hfsr.byte       = NVIC_HFSR;    // Hard Fault Status Register
   HardFaultRegs.dfsr.byte       = NVIC_DFSR;    // Debug Fault Status Register
   HardFaultRegs.afsr            = NVIC_AFSR;    // Auxiliary Fault Status Register
-  //
-  // Halt execution
-  // If NVIC registers indicate readable memory, change the variable value to != 0 to continue execution.
-  //
-  _Continue = 0u;
-  while (_Continue == 0u) {
-  }
-  //
+
+  printf ("hardFault\n");
+
   // Read saved registers from the stack.
-  //
   HardFaultRegs.SavedRegs.r0       = pStack[0];  // Register R0
   HardFaultRegs.SavedRegs.r1       = pStack[1];  // Register R1
   HardFaultRegs.SavedRegs.r2       = pStack[2];  // Register R2
@@ -233,6 +195,13 @@ void HardFaultHandler(unsigned int* pStack) {
   HardFaultRegs.SavedRegs.lr       = pStack[5];  // Link register LR
   HardFaultRegs.SavedRegs.pc       = pStack[6];  // Program counter PC
   HardFaultRegs.SavedRegs.psr.byte = pStack[7];  // Program status word PSR
+
+  printf ("- pc:%p\n", HardFaultRegs.SavedRegs.pc);
+  printf ("- r0:%p\n", HardFaultRegs.SavedRegs.r0);
+  printf ("- r1:%p\n", HardFaultRegs.SavedRegs.r1);
+  printf ("- r2:%p\n", HardFaultRegs.SavedRegs.r2);
+  printf ("- r3:%p\n", HardFaultRegs.SavedRegs.r3);
+  printf ("- lr:%p\n", HardFaultRegs.SavedRegs.lr);
   //
   // Halt execution
   // To step out of the HardFaultHandler, change the variable value to != 0.
