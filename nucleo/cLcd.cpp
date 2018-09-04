@@ -853,9 +853,9 @@ void cLcd::sendData (uint16_t data) {
   // FMC_D4:D12  PE7:15
   GPIOE->ODR = data << 3;
 
-  GPIOD->BSRRH = GPIO_PIN_5; // wrLo
+  GPIOD->BRR = GPIO_PIN_5; // wrLo
   //for (int i= 0; i < 16; i++) j = i;
-  GPIOD->BSRRL = GPIO_PIN_5; // wrHi
+  GPIOD->BSRR = GPIO_PIN_5; // wrHi
   }
 //}}}
 //{{{
@@ -905,7 +905,7 @@ void cLcd::present() {
     // FMC_D0:D1 PD14:15   FMC_D2:D3 PD0:1   FMC_D13:D15 PD8:10  PD5 wrLo
     gpiod = (gpiod & 0x38DC) | (data << 14) | ((data & 0x000C) >> 2) | ((data >> 13) << 8);
     GPIOD->ODR = gpiod;
-    GPIOD->BSRRL = GPIO_PIN_5; // wrHi
+    GPIOD->BSRR = GPIO_PIN_5; // wrHi
     } while (ptr != end);
 
   HAL_GPIO_WritePin (GPIOD, GPIO_PIN_7, GPIO_PIN_SET);    // csHi

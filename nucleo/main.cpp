@@ -5,8 +5,8 @@
 #include <ctype.h>
 
 #include "cmsis_os.h"
-#include "stm32l4xx.h"
 
+#include "../common/stm32l4xx_nucleo_144.h"
 #include "../common/heap.h"
 #include "../common/cRtc.h"
 
@@ -112,85 +112,80 @@ void appThread (void* arg) {
 //}}}
 
 //{{{
-//void clockConfig() {
-////   System Clock       = PLL (HSE BYPASS)
-////   SYSCLK(Hz)         = 400000000 (CPU Clock)
-////   HCLK(Hz)           = 200000000 (AXI and AHBs Clock)
-////   AHB Prescaler      = 2
-////   D1 APB3 Prescaler  = 2 (APB3 Clock  100MHz)
-////   D2 APB1 Prescaler  = 2 (APB1 Clock  100MHz)
-////   D2 APB2 Prescaler  = 2 (APB2 Clock  100MHz)
-////   D3 APB4 Prescaler  = 2 (APB4 Clock  100MHz)
-////   HSE Frequency(Hz)  = 8000000
-////   PLL_M              = 4
-////   PLL_N              = 400
-////   PLL_P              = 2
-////   PLL_Q              = 4
-////   PLL_R              = 2
-////   VDD(V)             = 3.3
-////   Flash Latency(WS)  = 4
+/**
+  * @brief  System Clock Configuration
+  *         The system Clock is configured as follows :
+  *            System Clock source            = PLL (MSI)
+  *            SYSCLK(Hz)                     = 120000000
+  *            HCLK(Hz)                       = 120000000
+  *            AHB Prescaler                  = 1
+  *            APB1 Prescaler                 = 1
+  *            APB2 Prescaler                 = 1
+  *            MSI Frequency(Hz)              = 4000000
+  *            PLL_M                          = 1
+  *            PLL_N                          = 60
+  *            PLL_Q                          = 2
+  *            PLL_R                          = 2
+  *            PLL_P                          = 7
+  *            Flash Latency(WS)              = 5
+  * @param  None
+  * @retval None
+  */
+void clockConfig() {
 
-  //MODIFY_REG (PWR->CR3, PWR_CR3_SCUEN, 0);
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
 
-  //// Voltage scaling optimises power consumption when clocked below maximum system frequency
-  //__HAL_PWR_VOLTAGESCALING_CONFIG (PWR_REGULATOR_VOLTAGE_SCALE1);
-  //while (!__HAL_PWR_GET_FLAG (PWR_FLAG_VOSRDY)) {}
+  /* Enable voltage range 1 boost mode for frequency above 80 Mhz */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
+  __HAL_RCC_PWR_CLK_DISABLE();
 
-  //// Enable D2 domain SRAM Clocks
-  //__HAL_RCC_D2SRAM1_CLK_ENABLE();
-  //__HAL_RCC_D2SRAM2_CLK_ENABLE();
-  //__HAL_RCC_D2SRAM3_CLK_ENABLE();
+  /* Enable MSI Oscillator and activate PLL with MSI as source */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+  RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
+  RCC_OscInitStruct.PLL.PLLM = 1;
+  RCC_OscInitStruct.PLL.PLLN = 60;
+  RCC_OscInitStruct.PLL.PLLR = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 2;
+  RCC_OscInitStruct.PLL.PLLP = 7;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    /* Initialization Error */
+    while(1);
+  }
 
-  //// enable HSE Oscillator, activate PLL HSE source
-  //RCC_OscInitTypeDef rccOscInit;
-  //rccOscInit.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  //rccOscInit.HSEState = RCC_HSE_BYPASS;
-  //rccOscInit.HSIState = RCC_HSI_OFF;
-  //rccOscInit.CSIState = RCC_CSI_OFF;
-  //rccOscInit.PLL.PLLState = RCC_PLL_ON;
-  //rccOscInit.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  //rccOscInit.PLL.PLLM = 4;
-  //rccOscInit.PLL.PLLN = 400;
-  //rccOscInit.PLL.PLLP = 2;
-  //rccOscInit.PLL.PLLQ = 4;
-  //rccOscInit.PLL.PLLR = 2;
-  //rccOscInit.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
-  //rccOscInit.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
-  //HAL_RCC_OscConfig (&rccOscInit);
+  /* To avoid undershoot due to maximum frequency, select PLL as system clock source */
+  /* with AHB prescaler divider 2 as first step */
+  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  {
+    /* Initialization Error */
+    while(1);
+  }
 
-  //// select PLL system clock source. config bus clocks dividers
-  //RCC_ClkInitTypeDef rccClkInit;
-  //rccClkInit.ClockType = (RCC_CLOCKTYPE_SYSCLK  | RCC_CLOCKTYPE_HCLK |
-                          //RCC_CLOCKTYPE_PCLK1   | RCC_CLOCKTYPE_PCLK2 |
-                          //RCC_CLOCKTYPE_D1PCLK1 | RCC_CLOCKTYPE_D3PCLK1);
-  //rccClkInit.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  //rccClkInit.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  //rccClkInit.AHBCLKDivider = RCC_HCLK_DIV2;
-  //rccClkInit.APB1CLKDivider = RCC_APB1_DIV2;
-  //rccClkInit.APB2CLKDivider = RCC_APB2_DIV2;
-  //rccClkInit.APB3CLKDivider = RCC_APB3_DIV2;
-  //rccClkInit.APB4CLKDivider = RCC_APB4_DIV2;
-  //HAL_RCC_ClockConfig (&rccClkInit, FLASH_LATENCY_2);
-  ////HAL_RCC_ClockConfig (&rccClkInit, FLASH_LATENCY_4);
-
-  //// PLL3_VCO In  = HSE_VALUE / PLL3M = 1 Mhz
-  //// PLL3_VCO Out = PLL3_VCO In * PLL3N = 100 Mhz
-  //// PLLLCDCLK    = PLL3_VCO Out / PLL3R = 100/4 = 25Mhz
-  //// LTDC clock   = PLLLCDCLK = 25Mhz
-  //RCC_PeriphCLKInitTypeDef rccPeriphClkInit;
-  //rccPeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
-  //rccPeriphClkInit.PLL3.PLL3M = 8;
-  //rccPeriphClkInit.PLL3.PLL3N = 100;
-  //rccPeriphClkInit.PLL3.PLL3R = 4;
-  //rccPeriphClkInit.PLL3.PLL3P = 2;
-  //rccPeriphClkInit.PLL3.PLL3Q = 7;
-  //HAL_RCCEx_PeriphCLKConfig (&rccPeriphClkInit);
-  //}
+  /* AHB prescaler divider at 1 as second step */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  {
+    /* Initialization Error */
+    while(1);
+  }
+}
 //}}}
 
 int main() {
   HAL_Init();
-  //clockConfig();
+  clockConfig();
 
   printf ("%s\n", kHello.c_str());
 

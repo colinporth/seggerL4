@@ -38,6 +38,7 @@
       <file file_name="../common/utils.cpp" />
       <file file_name="main.cpp" />
       <file file_name="cLcd.cpp" />
+      <file file_name="../common/stm32l4xx_nucleo_144.c" />
     </folder>
     <folder Name="RTT Files">
       <file file_name="../RTT/SEGGER_RTT.c" />
@@ -63,6 +64,7 @@
       <file file_name="cLcd.h" />
       <file file_name="FreeRTOSConfig.h" />
       <file file_name="stm32l4xx_hal_conf.h" />
+      <file file_name="../common/stm32l4xx_nucleo_144.h" />
     </folder>
     <folder Name="drivers">
       <folder Name="inc">
@@ -349,6 +351,37 @@
       <file file_name="../freetype/Src/sfnt/sfnt.c" />
       <file file_name="../freetype/Src/smooth/ftgrays.c" />
       <file file_name="../freetype/Src/truetype/truetype.c" />
+      <file file_name="../freetype/Src/smooth/ftsmooth.c" />
+    </folder>
+    <folder Name="FreeRTOS">
+      <folder Name="inc">
+        <file file_name="../FreeRTOS/include/list.h" />
+        <file file_name="../FreeRTOS/include/mpu_prototypes.h" />
+        <file file_name="../FreeRTOS/include/mpu_wrappers.h" />
+        <file file_name="../FreeRTOS/include/portable.h" />
+        <file file_name="../FreeRTOS/include/projdefs.h" />
+        <file file_name="../FreeRTOS/include/queue.h" />
+        <file file_name="../FreeRTOS/include/semphr.h" />
+        <file file_name="../FreeRTOS/include/StackMacros.h" />
+        <file file_name="../FreeRTOS/include/task.h" />
+        <file file_name="../FreeRTOS/include/timers.h" />
+        <file file_name="../FreeRTOS/include/cpuUsage.h" />
+        <file file_name="../FreeRTOS/include/croutine.h" />
+        <file file_name="../FreeRTOS/include/deprecated_definitions.h" />
+        <file file_name="../FreeRTOS/include/event_groups.h" />
+        <file file_name="../FreeRTOS/include/FreeRTOS.h" />
+        <file file_name="../FreeRTOS/portable/GCC/ARM_CM4F/portmacro.h" />
+      </folder>
+      <file file_name="../FreeRTOS/croutine.c" />
+      <file file_name="../FreeRTOS/event_groups.c" />
+      <file file_name="../FreeRTOS/list.c" />
+      <file file_name="../FreeRTOS/queue.c" />
+      <file file_name="../FreeRTOS/readme.txt" />
+      <file file_name="../FreeRTOS/st_readme.txt" />
+      <file file_name="../FreeRTOS/tasks.c" />
+      <file file_name="../FreeRTOS/timers.c" />
+      <file file_name="../FreeRTOS/portable/GCC/ARM_CM4F/port.c" />
+      <file file_name="../FreeRTOS/cpuUsage.c" />
     </folder>
   </project>
   <configuration
