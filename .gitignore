@@ -1,0 +1,15 @@
+# Prerequisites
+*.d
+
+*.lib
+*.a
+
+*.o
+*.d
+*.hex
+*.elf
+*.map
+
+*.~*
+*.asm
+*.emSession
