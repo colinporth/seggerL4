@@ -32,10 +32,10 @@
       project_type="Executable" />
     <folder Name="Source Files">
       <configuration Name="Common" filter="c;cpp;cxx;cc;h;s;asm;inc" />
-      <file file_name="main.c" />
       <file file_name="../common/cRtc.cpp" />
       <file file_name="../common/heap.cpp" />
       <file file_name="../common/utils.cpp" />
+      <file file_name="main.cpp" />
     </folder>
     <folder Name="RTT Files">
       <file file_name="../RTT/SEGGER_RTT.c" />

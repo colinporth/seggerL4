@@ -1,8 +1,8 @@
 
-"Output/nucleo Debug/Obj/main.o"
 "Output/nucleo Debug/Obj/cRtc.o"
 "Output/nucleo Debug/Obj/heap.o"
 "Output/nucleo Debug/Obj/utils.o"
+"Output/nucleo Debug/Obj/main.o"
 "Output/nucleo Debug/Obj/SEGGER_RTT.o"
 "Output/nucleo Debug/Obj/SEGGER_RTT_Syscalls_SES.o"
 "Output/nucleo Debug/Obj/Cortex_M_Startup.o"
