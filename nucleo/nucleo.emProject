@@ -16,6 +16,7 @@
       arm_simulator_memory_simulation_parameter="RX 08000000,00200000,FFFFFFFF;RWX 20000000,00050000,CDCDCDCD"
       arm_target_device_name="STM32L4R5ZI"
       arm_target_interface_type="SWD"
+      c_preprocessor_definitions="FT2_BUILD_LIBRARY"
       c_user_include_directories=".;../CMSIS;../RTT;../system;../drivers/Inc;../FreeRTOS/include;../FreeRTOS/portable/GCC/ARM_CM4F;../FreeRTOS/CMSIS_RTOS;../freetype/Inc;../LibJPEG/include."
       cpp_enable_rtti="Yes"
       debug_target_connection="J-Link"
@@ -36,6 +37,7 @@
       <file file_name="../common/heap.cpp" />
       <file file_name="../common/utils.cpp" />
       <file file_name="main.cpp" />
+      <file file_name="cLcd.cpp" />
     </folder>
     <folder Name="RTT Files">
       <file file_name="../RTT/SEGGER_RTT.c" />
@@ -58,6 +60,9 @@
       <file file_name="../common/cTraceVec.h" />
       <file file_name="../common/heap.h" />
       <file file_name="../common/utils.h" />
+      <file file_name="cLcd.h" />
+      <file file_name="FreeRTOSConfig.h" />
+      <file file_name="stm32l4xx_hal_conf.h" />
     </folder>
     <folder Name="drivers">
       <folder Name="inc">
@@ -269,6 +274,81 @@
         <file file_name="../drivers/Src/stm32l4xx_hal.c" />
         <file file_name="../drivers/Src/stm32l4xx_hal_adc.c" />
       </folder>
+    </folder>
+    <folder Name="freetype">
+      <folder Name="inc">
+        <file file_name="../freetype/Inc/ftbdf.h" />
+        <file file_name="../freetype/Inc/ftbitmap.h" />
+        <file file_name="../freetype/Inc/ftbzip2.h" />
+        <file file_name="../freetype/Inc/ftcffdrv.h" />
+        <file file_name="../freetype/Inc/ftchapters.h" />
+        <file file_name="../freetype/Inc/ftcid.h" />
+        <file file_name="../freetype/Inc/fterrdef.h" />
+        <file file_name="../freetype/Inc/fterrors.h" />
+        <file file_name="../freetype/Inc/ftglyph.h" />
+        <file file_name="../freetype/Inc/ftgxval.h" />
+        <file file_name="../freetype/Inc/ftgzip.h" />
+        <file file_name="../freetype/Inc/ftimage.h" />
+        <file file_name="../freetype/Inc/ftincrem.h" />
+        <file file_name="../freetype/Inc/ftlcdfil.h" />
+        <file file_name="../freetype/Inc/ftlist.h" />
+        <file file_name="../freetype/Inc/ftlzw.h" />
+        <file file_name="../freetype/Inc/ftmac.h" />
+        <file file_name="../freetype/Inc/ftmm.h" />
+        <file file_name="../freetype/Inc/ftmodapi.h" />
+        <file file_name="../freetype/Inc/ftmoderr.h" />
+        <file file_name="../freetype/Inc/ftotval.h" />
+        <file file_name="../freetype/Inc/ftoutln.h" />
+        <file file_name="../freetype/Inc/ftrender.h" />
+        <file file_name="../freetype/Inc/ftsizes.h" />
+        <file file_name="../freetype/Inc/ftsnames.h" />
+        <file file_name="../freetype/Inc/ftstroke.h" />
+        <file file_name="../freetype/Inc/ftsynth.h" />
+        <file file_name="../freetype/Inc/ftsystem.h" />
+        <file file_name="../freetype/Inc/fttrigon.h" />
+        <file file_name="../freetype/Inc/ftttdrv.h" />
+        <file file_name="../freetype/Inc/fttypes.h" />
+        <file file_name="../freetype/Inc/ftwinfnt.h" />
+        <file file_name="../freetype/Inc/t1tables.h" />
+        <file file_name="../freetype/Inc/ttnameid.h" />
+        <file file_name="../freetype/Inc/tttables.h" />
+        <file file_name="../freetype/Inc/tttags.h" />
+        <file file_name="../freetype/Inc/ttunpat.h" />
+        <folder
+          Name="config"
+          exclude=""
+          filter="*.*"
+          path="../freetype/Inc/config"
+          recurse="No" />
+        <folder
+          Name="internal"
+          exclude=""
+          filter="*.*"
+          path="../freetype/Inc/internal"
+          recurse="No" />
+        <file file_name="../freetype/Inc/freetype.h" />
+        <file file_name="../freetype/Inc/ft2build.h" />
+        <file file_name="../freetype/Inc/ftadvanc.h" />
+        <file file_name="../freetype/Inc/ftautoh.h" />
+        <file file_name="../freetype/Inc/ftbbox.h" />
+        <file file_name="../freetype/FreeSansBold.h" />
+      </folder>
+      <file file_name="../freetype/Src/autofit/autofit.c" />
+      <file file_name="../freetype/Src/base/ftapi.c" />
+      <file file_name="../freetype/Src/base/ftbase.c" />
+      <file file_name="../freetype/Src/base/ftbbox.c" />
+      <file file_name="../freetype/Src/base/ftbitmap.c" />
+      <file file_name="../freetype/Src/base/ftdebug.c" />
+      <file file_name="../freetype/Src/base/ftglyph.c" />
+      <file file_name="../freetype/Src/base/ftinit.c" />
+      <file file_name="../freetype/Src/base/ftlcdfil.c" />
+      <file file_name="../freetype/Src/base/ftpatent.c" />
+      <file file_name="../freetype/Src/base/ftsystem.c" />
+      <file file_name="../freetype/Src/base/md5.c" />
+      <file file_name="../freetype/Src/raster/raster.c" />
+      <file file_name="../freetype/Src/sfnt/sfnt.c" />
+      <file file_name="../freetype/Src/smooth/ftgrays.c" />
+      <file file_name="../freetype/Src/truetype/truetype.c" />
     </folder>
   </project>
   <configuration
