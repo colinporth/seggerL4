@@ -684,17 +684,14 @@ volatile int j;
 //{{{
 //void sendCommand (uint16_t reg) {
 
-  //*((volatile uint16_t*)(0x60000000+reg)) = reg;
-  //for (int i = 0; i < 10; i++) j = i;
+  //*((volatile uint16_t*)(0x60000000)) = reg;
   //}
 //}}}
 //{{{
 //void cLcd::sendCommandData (uint16_t reg, uint16_t data) {
 
-  //*((volatile uint16_t*)(0x60000000+reg)) = reg;
-  //for (int i = 0; i < 10; i++) j = i;
-  //*((volatile uint16_t*)(0x60080000+data)) = data;
-  //for (int i = 0; i < 10; i++) j = i;
+  //*((volatile uint16_t*)(0x60000000)) = reg;
+  //*((volatile uint16_t*)(0x60080000)) = data;
   //}
 //}}}
 //{{{
@@ -708,10 +705,8 @@ volatile int j;
   //sendCommand (0x22);
 
   //auto ptr = mBuffer;
-  //for (int i = 0; i < 320*480; i++)  {
-    //*((volatile uint16_t*)(0x60080000 + i)) = *ptr++;
-    //for (int i = 0; i < 10; i++) j = i;
-    //}
+  //for (int i = 0; i < 320*480; i++)
+    //*((volatile uint16_t*)(0x60080000)) = *ptr++;
 
   //mWaitTime = HAL_GetTick() - mStartTime;
 
@@ -1659,9 +1654,9 @@ void cLcd::drawInfo() {
     text (kWhite, kFooterHeight,
           dec(mNumPresents) + ":" + dec (mDrawTime) + ":" + dec (mWaitTime) + " " +
           dec (osGetCPUUsage()) + "%"
-          " s1:" + dec (getSram1FreeSize()/1000) + ":" + dec (getSram1Size()/1000) +
-          " s2:" + dec (getDtcmFreeSize()/1000) + ":" + dec (getDtcmSize()/1000) +
-          " s3:" + dec (getSramFreeSize()/1000) + ":" + dec (getSramMinFreeSize()/1000) + ":" + dec (getSramSize()/1000),
+          " 1:" + dec (getSram1FreeSize()/1000) + ":" + dec (getSram1Size()/1000) +
+          " 2:" + dec (getDtcmFreeSize()/1000) + ":" + dec (getDtcmSize()/1000) +
+          " 3:" + dec (getSramFreeSize()/1000) + ":" + dec (getSramMinFreeSize()/1000) + ":" + dec (getSramSize()/1000),
           cRect(0, y, getWidth(), kTitleHeight+kGap));
 
     // draw log
