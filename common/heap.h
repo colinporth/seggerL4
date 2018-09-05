@@ -1,6 +1,5 @@
 // heap.h
 #pragma once
-#include <string>
 //{{{
 #ifdef __cplusplus
  extern "C" {

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -38,7 +39,7 @@ protected:
 class cRtosHeap : public cHeap {
 public:
   //{{{
-  cRtosHeap (uint32_t start, size_t size, bool debug) : cHeap (size, debug) {
+  cRtosHeap (uint32_t start, size_t size, bool debug, const std::string& tag) : cHeap (size, debug), mTag(tag) {
 
     // Ensure the heap starts on a correctly aligned boundary
     size_t uxAddress = (size_t)start;
@@ -84,8 +85,8 @@ public:
     xTaskResumeAll();
 
     if (mDebug) {
-      printf ("cHeap::alloc size:%d free:%d minFree:%d largest:%d\n",
-              size, mFreeSize, mMinFreeSize, largestBlock);
+      printf ("%s::alloc size:%d free:%d minFree:%d largest:%d\n",
+              mTag.c_str(), size, mFreeSize, mMinFreeSize, largestBlock);
 
       tLink_t* block = mStart.mNextFreeBlock;
       while (block) {
@@ -98,7 +99,7 @@ public:
       }
 
     if (!allocAddress)
-      printf ("****** cHeap::alloc fail size:%d\n", size);
+      printf ("****** %s::alloc fail size:%d\n", mTag.c_str(), size);
     return allocAddress;
     }
   //}}}
@@ -111,7 +112,7 @@ public:
       tLink_t* link = (tLink_t*)puc;
 
       if (mDebug)
-        printf ("cHeap::free %p %d\n", ptr, link->mBlockSize & (~kBlockAllocatedBit));
+        printf ("%s::free %p %d\n", mTag.c_str(), ptr, link->mBlockSize & (~kBlockAllocatedBit));
 
       if (link->mBlockSize & kBlockAllocatedBit) {
         if (link->mNextFreeBlock == NULL) {
@@ -240,6 +241,7 @@ private:
 
   tLink_t mStart;
   tLink_t* mEnd = NULL;
+  std::string mTag;
   };
 //}}}
 
@@ -248,7 +250,7 @@ cRtosHeap* mSram1Heap = nullptr;
 //{{{
 uint8_t* sram1Alloc (size_t size) {
   if (!mSram1Heap)
-    mSram1Heap = new cRtosHeap (0x20000000, 0x00030000, true);
+    mSram1Heap = new cRtosHeap (0x20000000, 0x00030000, true, "sram1");
   return (uint8_t*)mSram1Heap->alloc (size, "");
   }
 //}}}
@@ -262,7 +264,7 @@ cRtosHeap* mDtcmHeap = nullptr;
 //{{{
 uint8_t* dtcmAlloc (size_t size) {
   if (!mDtcmHeap)
-    mDtcmHeap = new cRtosHeap (0x20030000, 0x00010000, true);
+    mDtcmHeap = new cRtosHeap (0x20030000, 0x00010000, true, "sram2");
   return (uint8_t*)mDtcmHeap->alloc (size, "");
   }
 //}}}
@@ -276,7 +278,7 @@ cRtosHeap* mSramHeap = nullptr;
 //{{{
 void* pvPortMalloc (size_t size) {
   if (!mSramHeap)
-    mSramHeap = new cRtosHeap (0x20048000, 0x00058000, true);
+    mSramHeap = new cRtosHeap (0x20048000, 0x00058000, true, "sram3");
   return mSramHeap->alloc (size, "");
   }
 //}}}

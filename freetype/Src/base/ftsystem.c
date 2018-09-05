@@ -27,6 +27,7 @@
 
 #include <ft2build.h>
 #include "cmsis_os.h"
+#include "../common/heap.h"
 #include FT_CONFIG_CONFIG_H
 #include FT_INTERNAL_DEBUG_H
 #include FT_INTERNAL_STREAM_H
@@ -70,7 +71,7 @@
   ft_alloc( FT_Memory  memory,
             long       size )
   {
-    return pvPortMalloc( size );
+    return sram1Alloc( size );
   }
 
 
@@ -100,11 +101,11 @@
               long       new_size,
               void*      block )
   {
-    void* p = pvPortMalloc (new_size);
+    void* p = sram1Alloc (new_size);
     if (p) {
       if (block != NULL) {
         memcpy (p, block, cur_size);
-        vPortFree (block);
+        sram1Free (block);
         }
       }
 
@@ -129,7 +130,7 @@
   ft_free( FT_Memory  memory,
            void*      block )
   {
-    vPortFree (block);
+    sram1Free (block);
   }
 
 

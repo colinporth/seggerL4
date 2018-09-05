@@ -39,6 +39,7 @@
       <file file_name="main.cpp" />
       <file file_name="cLcd.cpp" />
       <file file_name="../common/stm32l4xx_nucleo_144.c" />
+      <file file_name="../common/stm32l4xx_it.c" />
     </folder>
     <folder Name="RTT Files">
       <file file_name="../RTT/SEGGER_RTT.c" />
@@ -342,12 +343,11 @@
       <file file_name="../FreeRTOS/event_groups.c" />
       <file file_name="../FreeRTOS/list.c" />
       <file file_name="../FreeRTOS/queue.c" />
-      <file file_name="../FreeRTOS/readme.txt" />
-      <file file_name="../FreeRTOS/st_readme.txt" />
       <file file_name="../FreeRTOS/tasks.c" />
       <file file_name="../FreeRTOS/timers.c" />
       <file file_name="../FreeRTOS/portable/GCC/ARM_CM4F/port.c" />
       <file file_name="../FreeRTOS/cpuUsage.c" />
+      <file file_name="../FreeRTOS/CMSIS_RTOS/cmsis_os.c" />
     </folder>
   </project>
   <configuration
