@@ -16,9 +16,6 @@ public:
   std::string getClockTimeDateString() { return mDateTime.getTimeDateString(); }
   std::string getBuildTimeDateString() { return mBuildTime + " "  + mBuildDate; }
 
-  void* operator new (std::size_t size) { return pvPortMalloc (size); }
-  void operator delete (void* ptr) { vPortFree (ptr); }
-
 private:
   uint8_t getBcdFromByte (uint8_t byte) { return ((byte / 10) << 4) | (byte % 10); }
   uint8_t getByteFromBcd (uint8_t bcd) { return (((bcd & 0xF0) >> 4) * 10) + (bcd & 0x0F); }

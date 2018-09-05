@@ -17,17 +17,11 @@ size_t getSramSize();
 size_t getSramFreeSize();
 size_t getSramMinFreeSize();
 
-uint8_t* sram123Alloc (size_t bytes);
-void sram123Free (void* p);
-size_t getSram123Size();
-size_t getSram123FreeSize();
-size_t getSram123MinFreeSize();
-
-uint8_t* sdRamAlloc (size_t size, const std::string& tag);
-void sdRamFree (void* p);
-size_t getSdRamSize();
-size_t getSdRamFreeSize();
-size_t getSdRamMinFreeSize();
+uint8_t* sram1Alloc (size_t bytes);
+void sram1Free (void* p);
+size_t getSram1Size();
+size_t getSram1FreeSize();
+size_t getSram1MinFreeSize();
 
 //{{{
 #ifdef __cplusplus

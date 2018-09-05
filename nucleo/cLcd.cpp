@@ -1660,7 +1660,7 @@ void cLcd::drawInfo() {
           dec(mNumPresents) + ":" + dec (mDrawTime) + ":" + dec (mWaitTime) + " " +
           dec (osGetCPUUsage()) + "%"
           " d:" + dec (getDtcmFreeSize()/1000) + ":" + dec (getDtcmSize()/1000) +
-          " s:" + dec (getSram123FreeSize()/1000) + ":" + dec (getSram123Size()/1000) +
+          " s:" + dec (getSram1FreeSize()/1000) + ":" + dec (getSram1Size()/1000) +
           " a:" + dec (getSramFreeSize()/1000) + ":" + dec (getSramMinFreeSize()/1000) + ":" + dec (getSramSize()/1000),
           cRect(0, y, getWidth(), kTitleHeight+kGap));
 

@@ -1,4 +1,4 @@
-//// main.cpp
+// main.cpp
 //{{{  includes
 #include <algorithm>
 #include <string>
@@ -21,94 +21,94 @@ cLcd* lcd = nullptr;
 cRtc* rtc = nullptr;
 
 //{{{
-void uiThread (void* arg) {
+//void uiThread (void* arg) {
 
-  cPointF centre = cPointF (160.f, 240.f);
-  float radius = 20.f;
-  const float maxRadius = 160.f;
+  //cPointF centre = cPointF (160.f, 240.f);
+  //float radius = 20.f;
+  //const float maxRadius = 160.f;
 
-  lcd->tftInit();
-  lcd->display (70);
+  //lcd->tftInit();
+  //lcd->display (70);
 
-  int count = 0;
-  while (true) {
-    if (lcd->isChanged() || (count == 1000)) {
-      count = 0;
-      lcd->start();
-      lcd->clear (kBlack);
-      lcd->setShowInfo (BSP_PB_GetState (BUTTON_KEY) == 0);
-      lcd->drawInfo();
+  //int count = 0;
+  //while (true) {
+    //if (lcd->isChanged() || (count == 1000)) {
+      //count = 0;
+      //lcd->start();
+      //lcd->clear (kBlack);
+      //lcd->setShowInfo (BSP_PB_GetState (BUTTON_KEY) == 0);
+      //lcd->drawInfo();
       //{{{  get clock
-      float hourA;
-      float minuteA;
-      float secondA;
-      float subSecondA;
-      rtc->getClockAngles (hourA, minuteA, secondA, subSecondA);
+      //float hourA;
+      //float minuteA;
+      //float secondA;
+      //float subSecondA;
+      //rtc->getClockAngles (hourA, minuteA, secondA, subSecondA);
       //}}}
       //{{{  render clock
-      int steps = 64;
-      float width = 4.f;
-      lcd->aEllipse (centre, cPointF(radius-width, radius), steps);
-      lcd->aRender (sRgba565 (128,128,128, 192), false);
-      lcd->aEllipseOutline (centre, cPointF(radius, radius), width, steps);
-      lcd->aRender (sRgba565 (180,180,0, 255), false);
+      //int steps = 64;
+      //float width = 4.f;
+      //lcd->aEllipse (centre, cPointF(radius-width, radius), steps);
+      //lcd->aRender (sRgba565 (128,128,128, 192), false);
+      //lcd->aEllipseOutline (centre, cPointF(radius, radius), width, steps);
+      //lcd->aRender (sRgba565 (180,180,0, 255), false);
 
-      float handWidth = radius > 60.f ? radius / 20.f : 3.f;
-      float hourR = radius * 0.75f;
-      lcd->aPointedLine (centre, centre + cPointF (hourR * sin (hourA), hourR * cos (hourA)), handWidth);
-      float minuteR = radius * 0.9f;
-      lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (minuteA), minuteR * cos (minuteA)), handWidth);
-      lcd->aRender (kWhite);
+      //float handWidth = radius > 60.f ? radius / 20.f : 3.f;
+      //float hourR = radius * 0.75f;
+      //lcd->aPointedLine (centre, centre + cPointF (hourR * sin (hourA), hourR * cos (hourA)), handWidth);
+      //float minuteR = radius * 0.9f;
+      //lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (minuteA), minuteR * cos (minuteA)), handWidth);
+      //lcd->aRender (kWhite);
 
-      float secondR = radius * 0.95f;
-      lcd->aPointedLine (centre, centre + cPointF (secondR * sin (secondA), secondR * cos (secondA)), handWidth);
-      lcd->aRender (sRgba565 (255,0,0, 180));
+      //float secondR = radius * 0.95f;
+      //lcd->aPointedLine (centre, centre + cPointF (secondR * sin (secondA), secondR * cos (secondA)), handWidth);
+      //lcd->aRender (sRgba565 (255,0,0, 180));
       //}}}
-      lcd->cLcd::text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
-      lcd->present();
+      //lcd->cLcd::text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
+      //lcd->present();
 
-      if (radius < maxRadius) {
-        radius *= 1.04f;
-        if (radius > maxRadius)
-          radius = maxRadius;
-        lcd->change();
-        }
-      }
-    else {
-      count++;
-      vTaskDelay (1);
-      }
-    }
-  }
+      //if (radius < maxRadius) {
+        //radius *= 1.04f;
+        //if (radius > maxRadius)
+          //radius = maxRadius;
+        //lcd->change();
+        //}
+      //}
+    //else {
+      //count++;
+      //vTaskDelay (1);
+      //}
+    //}
+  //}
 //}}}
 //{{{
-void appThread (void* arg) {
+//void appThread (void* arg) {
 
-  //uint32_t offset = 0;
-  //while (true)
-  //  for (int j = 4; j <= 0x3F; j++) {
-  //    offset += HAL_GetTick();
-  //    sdRamTest (uint16_t(offset++), (uint16_t*)(SDRAM_DEVICE_ADDR + (j * 0x00200000)), 0x00200000);
-  //    vTaskDelay (200);
-  //    }
+  ////uint32_t offset = 0;
+  ////while (true)
+  ////  for (int j = 4; j <= 0x3F; j++) {
+  ////    offset += HAL_GetTick();
+  ////    sdRamTest (uint16_t(offset++), (uint16_t*)(SDRAM_DEVICE_ADDR + (j * 0x00200000)), 0x00200000);
+  ////    vTaskDelay (200);
+  ////    }
 
-  //  accel
-  //lsm303c_init();
-  while (true) {
-   // while (lsm303c_la_ready()) {
-   //   lsm303c_la (la);
-   //   mTraceVec.addSample (0, la[0]);
-    //  mTraceVec.addSample (1, la[1]);
-    //  mTraceVec.addSample (2, la[2]);
-    //  lcd->change();
-    //  }
+  ////  accel
+  ////lsm303c_init();
+  //while (true) {
+   //// while (lsm303c_la_ready()) {
+   ////   lsm303c_la (la);
+   ////   mTraceVec.addSample (0, la[0]);
+    ////  mTraceVec.addSample (1, la[1]);
+    ////  mTraceVec.addSample (2, la[2]);
+    ////  lcd->change();
+    ////  }
 
-    //lcd->info (COL_YELLOW, "MF x:" + dec(mf[0]) + " y:" + dec(mf[1]) + " z:" + dec(mf[2]));
-    //while (lsm303c_mf_ready())
-    //  lsm303c_mf (mf);
-    vTaskDelay (2);
-    }
-  }
+    ////lcd->info (COL_YELLOW, "MF x:" + dec(mf[0]) + " y:" + dec(mf[1]) + " z:" + dec(mf[2]));
+    ////while (lsm303c_mf_ready())
+    ////  lsm303c_mf (mf);
+    //vTaskDelay (2);
+    //}
+  //}
 //}}}
 
 //{{{
@@ -191,16 +191,18 @@ int main() {
 
   BSP_LED_Init (LED_RED);
   BSP_PB_Init (BUTTON_KEY, BUTTON_MODE_GPIO);
-  lcd = new cLcd();
-  lcd->init (kHello);
+
   rtc = new cRtc();
   rtc->init();
 
-  TaskHandle_t uiHandle;
-  xTaskCreate ((TaskFunction_t)uiThread, "ui", 1024, 0, 4, &uiHandle);
-  TaskHandle_t appHandle;
-  xTaskCreate ((TaskFunction_t)appThread, "app", 4096, 0, 4, &appHandle);
-  vTaskStartScheduler();
+  lcd = new cLcd();
+  lcd->init (kHello);
+
+  //TaskHandle_t uiHandle;
+  //xTaskCreate ((TaskFunction_t)uiThread, "ui", 1024, 0, 4, &uiHandle);
+  //TaskHandle_t appHandle;
+  //xTaskCreate ((TaskFunction_t)appThread, "app", 4096, 0, 4, &appHandle);
+  //vTaskStartScheduler();
 
   return 0;
   }

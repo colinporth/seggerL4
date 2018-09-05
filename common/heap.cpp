@@ -445,12 +445,12 @@ private:
   };
 //}}}
 
-// dtcm
+// sram2 - 0x2003000 64k
 cRtosHeap* mDtcmHeap = nullptr;
 //{{{
 uint8_t* dtcmAlloc (size_t size) {
   if (!mDtcmHeap)
-    mDtcmHeap = new cRtosHeap (0x20000000, 0x00020000, false);
+    mDtcmHeap = new cRtosHeap (0x20030000, 0x00010000, true);
   return (uint8_t*)mDtcmHeap->alloc (size, "");
   }
 //}}}
@@ -459,12 +459,12 @@ size_t getDtcmSize(){ return mDtcmHeap ? mDtcmHeap->getSize() : 0 ; }
 size_t getDtcmFreeSize() { return mDtcmHeap ? mDtcmHeap->getFreeSize() : 0 ; }
 size_t getDtcmMinFreeSize() { return mDtcmHeap ? mDtcmHeap->getMinFreeSize() : 0 ; }
 
-// sram AXI
+// sram3 - 0x20040000 384k - 64k system stuff 0x20050000 320k
 cRtosHeap* mSramHeap = nullptr;
 //{{{
 void* pvPortMalloc (size_t size) {
   if (!mSramHeap)
-    mSramHeap = new cRtosHeap (0x24010000, 0x00070000, false);
+    mSramHeap = new cRtosHeap (0x24010000, 0x00050000, true);
   return mSramHeap->alloc (size, "");
   }
 //}}}
@@ -489,31 +489,16 @@ size_t getSramMinFreeSize() { return mSramHeap ? mSramHeap->getMinFreeSize() : 0
   //}
 //}}}
 
-// sram 123
-cRtosHeap* mSram123Heap = nullptr;
+// sram1 0x20000000 192k
+cRtosHeap* mSram1Heap = nullptr;
 //{{{
-uint8_t* sram123Alloc (size_t size) {
-  if (!mSram123Heap)
-    mSram123Heap = new cRtosHeap (0x30000000, 0x00048000, false);
-  return (uint8_t*)mSram123Heap->alloc (size, "");
+uint8_t* sram1Alloc (size_t size) {
+  if (!mSram1Heap)
+    mSram1Heap = new cRtosHeap (0x20000000, 0x00030000, true);
+  return (uint8_t*)mSram1Heap->alloc (size, "");
   }
 //}}}
-void sram123Free (void* ptr) { mSram123Heap->free (ptr); }
-size_t getSram123Size(){ return mSram123Heap ? mSram123Heap->getSize() : 0 ; }
-size_t getSram123FreeSize() { return mSram123Heap ? mSram123Heap->getFreeSize() : 0 ; }
-size_t getSram123MinFreeSize() { return mSram123Heap ? mSram123Heap->getMinFreeSize() : 0 ; }
-
-// sd ram
-cSdRamHeap* mSdRamHeap = nullptr;
-//{{{
-uint8_t* sdRamAlloc (size_t size, const std::string& tag) {
-
-  if (!mSdRamHeap)
-    mSdRamHeap = new cSdRamHeap (0xD0000000, 0x08000000, false);
-  return mSdRamHeap->alloc (size, tag);
-  }
-//}}}
-void sdRamFree (void* ptr) { mSdRamHeap->free (ptr); }
-size_t getSdRamSize() { return mSdRamHeap ? mSdRamHeap->getSize() : 0; }
-size_t getSdRamFreeSize() { return mSdRamHeap ? mSdRamHeap->getFreeSize() : 0; }
-size_t getSdRamMinFreeSize() { return mSdRamHeap ? mSdRamHeap->getMinFreeSize() : 0; }
+void sram1Free (void* ptr) { mSram1Heap->free (ptr); }
+size_t getSram1Size(){ return mSram1Heap ? mSram1Heap->getSize() : 0 ; }
+size_t getSram1FreeSize() { return mSram1Heap ? mSram1Heap->getFreeSize() : 0 ; }
+size_t getSram1MinFreeSize() { return mSram1Heap ? mSram1Heap->getMinFreeSize() : 0 ; }

@@ -62,7 +62,7 @@ public:
      : mPiccy(piccy), mFormat(format), mPitch(pitch), mX(x), mY(y), mWidth(width), mHeight(height) {}
 
   ~cTile () {
-    sdRamFree (mPiccy);
+    vPortFree (mPiccy);
     mPiccy = nullptr;
     };
 
@@ -88,9 +88,6 @@ public:
 
   cLcd()  { mLcd = this; }
   ~cLcd();
-
-  void* operator new (std::size_t size) { return pvPortMalloc (size); }
-  void operator delete (void* ptr) { vPortFree (ptr); }
 
   void init (const std::string& title);
   void tftInit();

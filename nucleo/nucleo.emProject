@@ -9,7 +9,7 @@
       arm_endian="Little"
       arm_fp_abi="Hard"
       arm_fpu_type="FPv4-SP-D16"
-      arm_linker_heap_size="1024"
+      arm_linker_heap_size="50000"
       arm_linker_process_stack_size="0"
       arm_linker_stack_size="1024"
       arm_linker_variant="SEGGER"
@@ -18,7 +18,7 @@
       arm_target_interface_type="SWD"
       c_preprocessor_definitions="FT2_BUILD_LIBRARY"
       c_user_include_directories=".;../CMSIS;../RTT;../system;../drivers/Inc;../FreeRTOS/include;../FreeRTOS/portable/GCC/ARM_CM4F;../FreeRTOS/CMSIS_RTOS;../freetype/Inc;../LibJPEG/include."
-      cpp_enable_rtti="Yes"
+      cpp_enable_rtti="No"
       debug_target_connection="J-Link"
       debug_type_file="$(StudioDir)/bin/STLport.xml"
       gcc_c_language_standard="c11"
@@ -28,7 +28,7 @@
       linker_printf_fmt_level="int"
       linker_printf_fp_enabled="Float"
       linker_printf_width_precision_supported="Yes"
-      linker_section_placements_segments="FLASH RX 0x08000000 0x00200000;SRAM RWX 0x20000000 0x00050000"
+      linker_section_placements_segments="FLASH RX 0x08000000 0x00200000;SRAM RWX 0x20040000 0x00010000"
       project_directory=""
       project_type="Executable" />
     <folder Name="Source Files">
