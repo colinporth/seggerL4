@@ -245,6 +245,7 @@ private:
   };
 //}}}
 
+
 // sram1 0x20000000 192k 0x30000
 cRtosHeap* mSram1Heap = nullptr;
 
@@ -259,6 +260,7 @@ size_t getSram1Size(){ return mSram1Heap ? mSram1Heap->getSize() : 0 ; }
 size_t getSram1FreeSize() { return mSram1Heap ? mSram1Heap->getFreeSize() : 0 ; }
 size_t getSram1MinFreeSize() { return mSram1Heap ? mSram1Heap->getMinFreeSize() : 0 ; }
 
+
 // sram2 - 0x2003000 64k  0x10000
 cRtosHeap* mDtcmHeap = nullptr;
 
@@ -272,6 +274,7 @@ void dtcmFree (void* ptr) { mDtcmHeap->free (ptr); }
 size_t getDtcmSize(){ return mDtcmHeap ? mDtcmHeap->getSize() : 0 ; }
 size_t getDtcmFreeSize() { return mDtcmHeap ? mDtcmHeap->getFreeSize() : 0 ; }
 size_t getDtcmMinFreeSize() { return mDtcmHeap ? mDtcmHeap->getMinFreeSize() : 0 ; }
+
 
 // sram3 - 0x20040000 384k 0x60000 - system heap/static 32k 0x08000 -  use x20048000  0x80000
 cRtosHeap* mSramHeap = nullptr;

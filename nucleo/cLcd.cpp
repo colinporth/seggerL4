@@ -1659,9 +1659,9 @@ void cLcd::drawInfo() {
     text (kWhite, kFooterHeight,
           dec(mNumPresents) + ":" + dec (mDrawTime) + ":" + dec (mWaitTime) + " " +
           dec (osGetCPUUsage()) + "%"
-          " d:" + dec (getDtcmFreeSize()/1000) + ":" + dec (getDtcmSize()/1000) +
-          " s:" + dec (getSram1FreeSize()/1000) + ":" + dec (getSram1Size()/1000) +
-          " a:" + dec (getSramFreeSize()/1000) + ":" + dec (getSramMinFreeSize()/1000) + ":" + dec (getSramSize()/1000),
+          " s1:" + dec (getSram1FreeSize()/1000) + ":" + dec (getSram1Size()/1000) +
+          " s2:" + dec (getDtcmFreeSize()/1000) + ":" + dec (getDtcmSize()/1000) +
+          " s3:" + dec (getSramFreeSize()/1000) + ":" + dec (getSramMinFreeSize()/1000) + ":" + dec (getSramSize()/1000),
           cRect(0, y, getWidth(), kTitleHeight+kGap));
 
     // draw log
@@ -1697,7 +1697,7 @@ cFontChar* cLcd::loadChar (uint16_t fontHeight, char ch) {
   fontChar->bitmap = nullptr;
 
   if (FTglyphSlot->bitmap.buffer) {
-    fontChar->bitmap = (uint8_t*)pvPortMalloc (FTglyphSlot->bitmap.pitch * FTglyphSlot->bitmap.rows);
+    fontChar->bitmap = (uint8_t*)sram1Alloc (FTglyphSlot->bitmap.pitch * FTglyphSlot->bitmap.rows);
     memcpy (fontChar->bitmap, FTglyphSlot->bitmap.buffer, FTglyphSlot->bitmap.pitch * FTglyphSlot->bitmap.rows);
     }
 
