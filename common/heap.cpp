@@ -1,11 +1,7 @@
 // heap.cpp
-// sram dtcm 128k  0x20000000 0x00020000
-// sram axi  512k  0x24000000 0x00080000
-// sram 1    128k  0x30000000 0x00020000
-// sram 2    128k  0x30020000 0x00020000
-// sram 3     32k  0x30040000 0x00008000
-// sram 4     64k  0x30080000 0x00010000
-// sdRam     128m  0xD0000000 0x08000000
+// sram 1    128k  0x20000000 0x00030000
+// sram 2     64k  0x20030000 0x00010000
+// sram 3    384k  0x20040000 0x00060000
 //{{{  includes
 #include <stdio.h>
 #include <stdlib.h>
@@ -246,206 +242,22 @@ private:
   tLink_t* mEnd = NULL;
   };
 //}}}
+
+// sram1 0x20000000 192k 0x30000
+cRtosHeap* mSram1Heap = nullptr;
 //{{{
-class cSdRamHeap : public cHeap {
-// simple slow heap for unreliable sdRam
-public:
-  //{{{
-  cSdRamHeap (uint32_t start, size_t size, bool debug) : cHeap(size, debug) {
-    mBlocks[0].mAddress = (uint8_t*)start;
-    mBlocks[0].mSize = size;
-    mBlocks[0].mAllocate = cBlock::eFree;
-    }
-  //}}}
-
-  //{{{
-  virtual uint8_t* alloc (size_t size, const std::string& tag) {
-
-    uint8_t* allocAddress = nullptr;
-
-    vTaskSuspendAll();
-
-    auto block = mBlocks;
-    while (block) {
-      if ((block->mAllocate == cBlock::eFree) && (size <= block->mSize)) {
-        block->mAllocate = cBlock::eAllocated;
-        if (size < block->mSize) {
-          // split block
-          auto newFreeBlock = newBlock (block->mAddress+size, block->mSize-size, cBlock::eFree, "free");
-          newFreeBlock->mNext = block->mNext;
-          block->mSize = size;
-          block->mNext = newFreeBlock;
-          }
-        block->mTag = tag;
-
-        mFreeSize -= size;
-        if (mFreeSize < mMinFreeSize)
-          mMinFreeSize = mFreeSize;
-
-        allocAddress = block->mAddress;
-        break;
-        }
-      block = block->mNext;
-      }
-
-    printf ("cSdRamHeap::alloc %p %x %s\n", allocAddress, size, tag.c_str());
-    if (mDebug) {
-      if (!check())
-        printf ("**** check error\n");
-      list();
-      }
-
-    xTaskResumeAll();
-
-    return allocAddress;
-    }
-  //}}}
-  //{{{
-  virtual void free (void* ptr) {
-
-    if (ptr) {
-      if (mDebug)
-        printf ("cSdRamHeap::free %p\n", ptr);
-
-      vTaskSuspendAll();
-
-      auto block = mBlocks;
-      cBlock* prevBlock = nullptr;
-      while (block) {
-        if (block->mAddress == ptr) {
-          if (block->mAllocate != cBlock::eAllocated)
-            printf ("**** free block not free\n");
-          else {
-            // free block
-            if (mDebug)
-              printf ("free block %x %s\n", block->mSize, block->mTag.c_str());
-            block->mAllocate = cBlock::eFree;
-            block->mTag = "free";
-            mFreeSize += block->mSize;
-
-            auto nextBlock = block->mNext;
-            if (nextBlock && (nextBlock->mAllocate == cBlock::eFree)) {
-              printf ("- combine with next free block %x + %x\n", block->mSize, block->mNext->mSize);
-              block->mSize += nextBlock->mSize;
-              block->mNext = nextBlock->mNext;
-              nextBlock->mAllocate = cBlock::eUnused;
-              }
-            if (prevBlock && (prevBlock->mAllocate == cBlock::eFree)) {
-              printf ("- combine with prev free block %x + %x\n", prevBlock->mSize, block->mSize);
-              prevBlock->mSize += block->mSize;
-              prevBlock->mNext = block->mNext;
-              block->mAllocate = cBlock::eUnused;
-              }
-            }
-          break;
-          }
-
-        prevBlock = block;
-        block = block->mNext;
-        }
-
-      if (mDebug) {
-        if (!check())
-          printf ("**** check error\n");
-        list();
-        }
-
-      xTaskResumeAll();
-      }
-    }
-  //}}}
-
-  //{{{
-  virtual size_t getLargestFreeSize() {
-
-    mLargestFreeSize = 0;
-    auto block = mBlocks;
-    while (block) {
-      if ((block->mAllocate == cBlock::eFree) && (block->mSize > mLargestFreeSize))
-        mLargestFreeSize = block->mSize;
-      block = block->mNext;
-      }
-    return mLargestFreeSize;
-    }
-  //}}}
-
-private:
-  //{{{
-  class cBlock {
-  public:
-    enum eAllocate { eFree, eAllocated, eUnused };
-
-    cBlock() {}
-    cBlock (uint8_t* address, uint32_t size, eAllocate allocate, const std::string& tag) :
-      mAddress(address), mSize(size), mAllocate(allocate), mTag(tag) {}
-
-    cBlock* mNext = nullptr;
-    uint8_t* mAddress = nullptr;
-    uint32_t mSize = 0;
-    eAllocate mAllocate = eUnused;
-    std::string mTag;
-    };
-  //}}}
-  //{{{
-  void list() {
-
-    auto block = mBlocks;
-    while (block) {
-      printf ("block %p %7x %d %s\n",
-              block->mAddress, block->mSize, block->mAllocate, block->mTag.c_str());
-      block = block->mNext;
-      }
-    printf ("-------------------------\n");
-    }
-  //}}}
-  //{{{
-  bool check() {
-
-    bool addressOk = true;
-    bool freeOk = true;
-
-    size_t size = 0;
-    cBlock* prevBlock = nullptr;
-    auto block = mBlocks;
-    while (block) {
-      size += block->mSize;
-      if (prevBlock && (prevBlock->mAddress + prevBlock->mSize != block->mAddress))
-        addressOk = false;
-      if ((block->mAllocate == cBlock::eFree) &&
-          ((block->mNext && (block->mNext->mAllocate == cBlock::eFree)) ||
-           (prevBlock && (prevBlock->mAllocate == cBlock::eFree))))
-        freeOk = false;
-      prevBlock = block;
-      block = block->mNext;
-      }
-
-    return addressOk && freeOk && (size == mSize);
-    }
-  //}}}
-  //{{{
-  cBlock* newBlock (uint8_t* address, uint32_t size, cBlock::eAllocate allocate, const std::string& tag) {
-
-    for (int i = 0; i < 10; i++)
-      if (mBlocks[i].mAllocate == cBlock::eUnused) {
-        auto block = &mBlocks[i];
-        block->mNext = nullptr;
-        block->mAddress = address;
-        block->mSize = size;
-        block->mAllocate = allocate;
-        block->mTag = tag;
-        return block;
-        }
-
-    printf ("**** newBlock failed\n");
-    return nullptr;
-    }
-  //}}}
-
-  cBlock mBlocks[20];
-  };
+uint8_t* sram1Alloc (size_t size) {
+  if (!mSram1Heap)
+    mSram1Heap = new cRtosHeap (0x20000000, 0x00030000, true);
+  return (uint8_t*)mSram1Heap->alloc (size, "");
+  }
 //}}}
+void sram1Free (void* ptr) { mSram1Heap->free (ptr); }
+size_t getSram1Size(){ return mSram1Heap ? mSram1Heap->getSize() : 0 ; }
+size_t getSram1FreeSize() { return mSram1Heap ? mSram1Heap->getFreeSize() : 0 ; }
+size_t getSram1MinFreeSize() { return mSram1Heap ? mSram1Heap->getMinFreeSize() : 0 ; }
 
-// sram2 - 0x2003000 64k
+// sram2 - 0x2003000 64k  0x10000
 cRtosHeap* mDtcmHeap = nullptr;
 //{{{
 uint8_t* dtcmAlloc (size_t size) {
@@ -459,12 +271,12 @@ size_t getDtcmSize(){ return mDtcmHeap ? mDtcmHeap->getSize() : 0 ; }
 size_t getDtcmFreeSize() { return mDtcmHeap ? mDtcmHeap->getFreeSize() : 0 ; }
 size_t getDtcmMinFreeSize() { return mDtcmHeap ? mDtcmHeap->getMinFreeSize() : 0 ; }
 
-// sram3 - 0x20040000 384k - 64k system stuff 0x20050000 320k
+// sram3 - 0x20040000 384k 0x60000 - system heap/static 32k 0x08000 -  use x20048000  0x80000
 cRtosHeap* mSramHeap = nullptr;
 //{{{
 void* pvPortMalloc (size_t size) {
   if (!mSramHeap)
-    mSramHeap = new cRtosHeap (0x24010000, 0x00050000, true);
+    mSramHeap = new cRtosHeap (0x20048000, 0x00058000, true);
   return mSramHeap->alloc (size, "");
   }
 //}}}
@@ -488,17 +300,3 @@ size_t getSramMinFreeSize() { return mSramHeap ? mSramHeap->getMinFreeSize() : 0
   //free (ptr);
   //}
 //}}}
-
-// sram1 0x20000000 192k
-cRtosHeap* mSram1Heap = nullptr;
-//{{{
-uint8_t* sram1Alloc (size_t size) {
-  if (!mSram1Heap)
-    mSram1Heap = new cRtosHeap (0x20000000, 0x00030000, true);
-  return (uint8_t*)mSram1Heap->alloc (size, "");
-  }
-//}}}
-void sram1Free (void* ptr) { mSram1Heap->free (ptr); }
-size_t getSram1Size(){ return mSram1Heap ? mSram1Heap->getSize() : 0 ; }
-size_t getSram1FreeSize() { return mSram1Heap ? mSram1Heap->getFreeSize() : 0 ; }
-size_t getSram1MinFreeSize() { return mSram1Heap ? mSram1Heap->getMinFreeSize() : 0 ; }
