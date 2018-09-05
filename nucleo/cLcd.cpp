@@ -52,18 +52,18 @@ public:
   //{{{
   ~cOutline() {
 
-    dtcmFree (mSortedCells);
+    sram1Free (mSortedCells);
 
     if (mNumBlockOfCells) {
       sCell** ptr = mBlockOfCells + mNumBlockOfCells - 1;
       while (mNumBlockOfCells--) {
         // free a block of cells
-        dtcmFree (*ptr);
+        sram1Free (*ptr);
         ptr--;
         }
 
       // free pointers to blockOfCells
-      dtcmFree (mBlockOfCells);
+      sram1Free (mBlockOfCells);
       }
     }
   //}}}
@@ -162,13 +162,13 @@ private:
         uint32_t block = mNumCells / mNumCellsInBlock;
         if (block >= mNumBlockOfCells) {
           // allocate new block
-          auto newCellPtrs = (sCell**)dtcmAlloc ((mNumBlockOfCells + 1) * sizeof(sCell*));
+          auto newCellPtrs = (sCell**)sram1Alloc ((mNumBlockOfCells + 1) * sizeof(sCell*));
           if (mBlockOfCells && mNumBlockOfCells) {
             memcpy (newCellPtrs, mBlockOfCells, mNumBlockOfCells * sizeof(sCell*));
-            dtcmFree (mBlockOfCells);
+            sram1Free (mBlockOfCells);
             }
           mBlockOfCells = newCellPtrs;
-          mBlockOfCells[mNumBlockOfCells] = (sCell*)dtcmAlloc (mNumCellsInBlock * sizeof(sCell));
+          mBlockOfCells[mNumBlockOfCells] = (sCell*)sram1Alloc (mNumCellsInBlock * sizeof(sCell));
           mNumBlockOfCells++;
           printf ("allocated new blockOfCells %d of %d\n", block, mNumBlockOfCells);
           }
@@ -204,8 +204,8 @@ private:
 
     // allocate mSortedCells, a contiguous vector of sCell pointers
     if (mNumCells > mNumSortedCells) {
-      dtcmFree (mSortedCells);
-      mSortedCells = (sCell**)dtcmAlloc ((mNumCells + 1) * 4);
+      sram1Free (mSortedCells);
+      mSortedCells = (sCell**)sram1Alloc ((mNumCells + 1) * 4);
       mNumSortedCells = mNumCells;
       }
 

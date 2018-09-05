@@ -264,7 +264,7 @@ cRtosHeap* mDtcmHeap = nullptr;
 
 uint8_t* dtcmAlloc (size_t size) {
   if (!mDtcmHeap)
-    mDtcmHeap = new cRtosHeap (0x20030000, 0x00010000, false, "sram2");
+    mDtcmHeap = new cRtosHeap (0x20030000, 0x00010000, false, "dtcm sram2");
   return (uint8_t*)mDtcmHeap->alloc (size, "");
   }
 void dtcmFree (void* ptr) { mDtcmHeap->free (ptr); }
