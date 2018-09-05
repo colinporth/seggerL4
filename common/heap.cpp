@@ -91,9 +91,9 @@ public:
       tLink_t* block = mStart.mNextFreeBlock;
       while (block) {
         if ((block->mBlockSize & kBlockAllocatedBit) == 0)
-          printf (" - alloc %p size:%d\n", block, block->mBlockSize);
+          printf ("- alloc %p size:%d\n", block, block->mBlockSize);
         else
-          printf (" -  free %p size:%d\n", block, block->mBlockSize);
+          printf ("- free  %p size:%d\n", block, block->mBlockSize);
         block = block->mNextFreeBlock;
         }
       }
@@ -247,42 +247,42 @@ private:
 
 // sram1 0x20000000 192k 0x30000
 cRtosHeap* mSram1Heap = nullptr;
-//{{{
+
 uint8_t* sram1Alloc (size_t size) {
   if (!mSram1Heap)
-    mSram1Heap = new cRtosHeap (0x20000000, 0x00030000, true, "sram1");
+    mSram1Heap = new cRtosHeap (0x20000000, 0x00030000, false, "sram1");
   return (uint8_t*)mSram1Heap->alloc (size, "");
   }
-//}}}
 void sram1Free (void* ptr) { mSram1Heap->free (ptr); }
+
 size_t getSram1Size(){ return mSram1Heap ? mSram1Heap->getSize() : 0 ; }
 size_t getSram1FreeSize() { return mSram1Heap ? mSram1Heap->getFreeSize() : 0 ; }
 size_t getSram1MinFreeSize() { return mSram1Heap ? mSram1Heap->getMinFreeSize() : 0 ; }
 
 // sram2 - 0x2003000 64k  0x10000
 cRtosHeap* mDtcmHeap = nullptr;
-//{{{
+
 uint8_t* dtcmAlloc (size_t size) {
   if (!mDtcmHeap)
-    mDtcmHeap = new cRtosHeap (0x20030000, 0x00010000, true, "sram2");
+    mDtcmHeap = new cRtosHeap (0x20030000, 0x00010000, false, "sram2");
   return (uint8_t*)mDtcmHeap->alloc (size, "");
   }
-//}}}
 void dtcmFree (void* ptr) { mDtcmHeap->free (ptr); }
+
 size_t getDtcmSize(){ return mDtcmHeap ? mDtcmHeap->getSize() : 0 ; }
 size_t getDtcmFreeSize() { return mDtcmHeap ? mDtcmHeap->getFreeSize() : 0 ; }
 size_t getDtcmMinFreeSize() { return mDtcmHeap ? mDtcmHeap->getMinFreeSize() : 0 ; }
 
 // sram3 - 0x20040000 384k 0x60000 - system heap/static 32k 0x08000 -  use x20048000  0x80000
 cRtosHeap* mSramHeap = nullptr;
-//{{{
+
 void* pvPortMalloc (size_t size) {
   if (!mSramHeap)
-    mSramHeap = new cRtosHeap (0x20048000, 0x00058000, true, "sram3");
+    mSramHeap = new cRtosHeap (0x20048000, 0x00058000, false, "sram3");
   return mSramHeap->alloc (size, "");
   }
-//}}}
 void vPortFree (void* ptr) { mSramHeap->free (ptr); }
+
 size_t getSramSize() { return mSramHeap ? mSramHeap->getSize() : 0 ; }
 size_t getSramFreeSize() { return mSramHeap ? mSramHeap->getFreeSize() : 0 ; }
 size_t getSramMinFreeSize() { return mSramHeap ? mSramHeap->getMinFreeSize() : 0 ; }

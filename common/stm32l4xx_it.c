@@ -8,6 +8,6 @@ void UsageFault_Handler() { while (1) { } }
 void DebugMon_Handler() { }
 
 void SysTick_Handler() {
-  //osSystickHandler();
+  osSystickHandler();
   HAL_IncTick();
   }
