@@ -660,6 +660,8 @@ public:
 cLcd* cLcd::mLcd = nullptr;
 
 static DMA2D_HandleTypeDef DMA2D_Handle;
+static SRAM_HandleTypeDef hsram;
+static FMC_NORSRAM_TimingTypeDef SRAM_Timing;
 
 static cLcd::eDma2dWait mDma2dWait = cLcd::eWaitNone;
 
@@ -677,342 +679,6 @@ static cScanLine mScanLine;
 static uint8_t mGamma[256];
 
 static uint32_t mNumStamps = 0;
-//}}}
-volatile int j;
-
-// fmc
-//{{{
-//void sendCommand (uint16_t reg) {
-
-  //*((volatile uint16_t*)(0x60000000)) = reg;
-  //}
-//}}}
-//{{{
-//void cLcd::sendCommandData (uint16_t reg, uint16_t data) {
-
-  //*((volatile uint16_t*)(0x60000000)) = reg;
-  //*((volatile uint16_t*)(0x60080000)) = data;
-  //}
-//}}}
-//{{{
-//void cLcd::present() {
-
-  //ready();
-  //mDrawTime = HAL_GetTick() - mStartTime;
-
-  //sendCommandData (0x20, 0);
-  //sendCommandData (0x21, 0);
-  //sendCommand (0x22);
-
-  //auto ptr = mBuffer;
-  //for (int i = 0; i < 320*480; i++)
-    //*((volatile uint16_t*)(0x60080000)) = *ptr++;
-
-  //mWaitTime = HAL_GetTick() - mStartTime;
-
-  //mNumPresents++;
-  //}
-//}}}
-//{{{
-//void cLcd::tftInit() {
-
-  //{{{  gpio
-  //__HAL_RCC_FMC_CLK_ENABLE();
-  //__HAL_RCC_GPIOD_CLK_ENABLE();
-  //__HAL_RCC_GPIOE_CLK_ENABLE();
-
-  //GPIO_InitTypeDef gpio_init_structure;
-  //gpio_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
-  //gpio_init_structure.Pull = GPIO_NOPULL;
-  //gpio_init_structure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  //gpio_init_structure.Pin = GPIO_PIN_12;
-  //HAL_GPIO_Init (GPIOD, &gpio_init_structure);
-  //HAL_GPIO_WritePin (GPIOD, GPIO_PIN_12, GPIO_PIN_SET); // resetHi
-
-  //gpio_init_structure.Alternate = GPIO_AF12_FMC;
-  //gpio_init_structure.Mode = GPIO_MODE_AF_PP;
-  //gpio_init_structure.Pull = GPIO_PULLUP;
-  //gpio_init_structure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  //gpio_init_structure.Pin = GPIO_PIN_4  | GPIO_PIN_5  | GPIO_PIN_7 | GPIO_PIN_13 | // noe->rd, nwe->wr, a18->rs
-                            //GPIO_PIN_14 | GPIO_PIN_15 |               // d0:d1
-                            //GPIO_PIN_0  | GPIO_PIN_1  |               // d2:d3
-                            //GPIO_PIN_8  | GPIO_PIN_9  | GPIO_PIN_10;  // d13:d15
-  //HAL_GPIO_Init (GPIOD, &gpio_init_structure);
-
-  //gpio_init_structure.Pin = GPIO_PIN_7  | GPIO_PIN_8  | GPIO_PIN_9  | GPIO_PIN_10 |
-                            //GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15; // d4:d12
-  //HAL_GPIO_Init (GPIOE, &gpio_init_structure);
-  //}}}
-  //{{{  reset pulse low
-  //HAL_GPIO_WritePin (GPIOD, GPIO_PIN_12, GPIO_PIN_RESET); // resetLo
-  //vTaskDelay (1);
-
-  //HAL_GPIO_WritePin (GPIOD, GPIO_PIN_12, GPIO_PIN_SET);   // resetHi
-  //vTaskDelay (120);
-  //}}}
-
-  //SRAM_HandleTypeDef hsram;
-  //FMC_NORSRAM_TimingTypeDef SRAM_Timing;
-  //hsram.Instance  = FMC_NORSRAM_DEVICE;
-  ////hsram.Extended  = FMC_NORSRAM_EXTENDED_DEVICE;
-  //hsram.Init.NSBank             = FMC_NORSRAM_BANK1;
-  //hsram.Init.DataAddressMux     = FMC_DATA_ADDRESS_MUX_DISABLE;
-  //hsram.Init.MemoryType         = FMC_MEMORY_TYPE_SRAM;
-  //hsram.Init.MemoryDataWidth    = FMC_NORSRAM_MEM_BUS_WIDTH_16;
-  //hsram.Init.BurstAccessMode    = FMC_BURST_ACCESS_MODE_DISABLE;
-  //hsram.Init.WaitSignalPolarity = FMC_WAIT_SIGNAL_POLARITY_LOW;
-  //hsram.Init.WaitSignalActive   = FMC_WAIT_TIMING_BEFORE_WS;
-  //hsram.Init.WriteOperation     = FMC_WRITE_OPERATION_ENABLE;
-  //hsram.Init.WaitSignal         = FMC_WAIT_SIGNAL_DISABLE;
-  //hsram.Init.ExtendedMode       = FMC_EXTENDED_MODE_DISABLE;
-  //hsram.Init.AsynchronousWait   = FMC_ASYNCHRONOUS_WAIT_DISABLE;
-  //hsram.Init.WriteBurst         = FMC_WRITE_BURST_DISABLE;
-  //hsram.Init.ContinuousClock    = FMC_CONTINUOUS_CLOCK_SYNC_ONLY;
-
-  //SRAM_Timing.AddressSetupTime       = 2; // 4
-  //SRAM_Timing.AddressHoldTime        = 0;  // 1
-  //SRAM_Timing.DataSetupTime          = 2;  // 2
-  //SRAM_Timing.BusTurnAroundDuration  = 1;
-  //SRAM_Timing.CLKDivision            = 2;
-  //SRAM_Timing.DataLatency            = 2;
-  //SRAM_Timing.AccessMode             = FMC_ACCESS_MODE_A;
-
-  //if (HAL_SRAM_Init(&hsram, &SRAM_Timing, &SRAM_Timing) != HAL_OK)
-    //printf ("init error\n");
-
-  //sendCommandData (0x01, 0x023C);
-  //sendCommandData (0x02, 0x0100);
-  //sendCommandData (0x03, 0x1030);
-  //sendCommandData (0x08, 0x0808);
-  //sendCommandData (0x0A, 0x0500);
-  //sendCommandData (0x0B, 0x0000);
-  //sendCommandData (0x0C, 0x0770);
-  //sendCommandData (0x0D, 0x0000);
-  //sendCommandData (0x0E, 0x0001);
-  //sendCommandData (0x11, 0x0406);
-  //sendCommandData (0x12, 0x000E);
-  //sendCommandData (0x13, 0x0222);
-  //sendCommandData (0x14, 0x0015);
-  //sendCommandData (0x15, 0x4277);
-  //sendCommandData (0x16, 0x0000);
-
-  //sendCommandData (0x30, 0x6A50);
-  //sendCommandData (0x31, 0x00C9);
-  //sendCommandData (0x32, 0xC7BE);
-  //sendCommandData (0x33, 0x0003);
-  //sendCommandData (0x36, 0x3443);
-  //sendCommandData (0x3B, 0x0000);
-  //sendCommandData (0x3C, 0x0000);
-  //sendCommandData (0x2C, 0x6A50);
-  //sendCommandData (0x2D, 0x00C9);
-  //sendCommandData (0x2E, 0xC7BE);
-  //sendCommandData (0x2F, 0x0003);
-  //sendCommandData (0x35, 0x3443);
-  //sendCommandData (0x39, 0x0000);
-  //sendCommandData (0x3A, 0x0000);
-  //sendCommandData (0x28, 0x6A50);
-  //sendCommandData (0x29, 0x00C9);
-  //sendCommandData (0x2A, 0xC7BE);
-  //sendCommandData (0x2B, 0x0003);
-  //sendCommandData (0x34, 0x3443);
-  //sendCommandData (0x37, 0x0000);
-  //sendCommandData (0x38, 0x0000);
-  //vTaskDelay (10);
-
-  //sendCommandData (0x12, 0x200E);
-  //vTaskDelay (10);
-
-  //sendCommandData (0x12, 0x2003);
-  //vTaskDelay (10);
-
-  //sendCommandData (0x44, 0x013F);
-  //sendCommandData (0x45, 0x0000);
-  //sendCommandData (0x46, 0x01DF);
-  //sendCommandData (0x47, 0x0000);
-  //sendCommandData (0x20, 0x0000);
-  //sendCommandData (0x21, 0x013F);
-  //sendCommandData (0x07, 0x0012);
-  //vTaskDelay (10);
-
-  //sendCommandData (0x07, 0x0017);
-  //vTaskDelay (10);
-  //}
-//}}}
-// gpio
-//{{{
-void cLcd::sendData (uint16_t data) {
-
-  // FMC_D0:D1 PD14:15   FMC_D2:D3 PD0:1   FMC_D13:D15 PD8:10
-  GPIOD->ODR = (GPIOD->ODR & ~(0xC703)) |
-               ((data & 0x000C) >> 2) | ((data & 0x0003) << 14) | ((data & 0xE000) >> 5);
-  // FMC_D4:D12  PE7:15
-  GPIOE->ODR = data << 3;
-
-  GPIOD->BRR = GPIO_PIN_5; // wrLo
-  //for (int i= 0; i < 16; i++) j = i;
-  GPIOD->BSRR = GPIO_PIN_5; // wrHi
-  }
-//}}}
-//{{{
-void cLcd::sendCommandData (uint16_t reg, uint16_t data) {
-
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_7 | GPIO_PIN_13, GPIO_PIN_RESET);  // csLo, command
-  sendData (reg);
-
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_13, GPIO_PIN_SET);   // data
-  sendData (data);
-
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_7, GPIO_PIN_SET);    // csHi
-  }
-//}}}
-//{{{
-void cLcd::present() {
-
-  ready();
-  mDrawTime = HAL_GetTick() - mStartTime;
-
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_7 | GPIO_PIN_13, GPIO_PIN_RESET);  // csLo, command
-  sendData (0x20);
-
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_13, GPIO_PIN_SET);   // data
-  sendData (0);
-
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_13, GPIO_PIN_RESET); // command
-  sendData (0x21);
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_13, GPIO_PIN_SET);   // data
-  sendData (0);
-
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_13, GPIO_PIN_RESET); // command
-  sendData (0x22);
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_13, GPIO_PIN_SET);   // data
-
-  auto ptr = mBuffer;
-  auto end = mBuffer + 320*480;
-  //do {
-    //sendData (*ptr++);
-  //  } while (ptr != end);
-
-  uint16_t gpiod = GPIOD->ODR;
-  do {
-    uint16_t data = *ptr++;
-    // FMC_D4:D12  PE7:15
-    GPIOE->ODR = data << 3;
-    // FMC_D0:D1 PD14:15   FMC_D2:D3 PD0:1   FMC_D13:D15 PD8:10  PD5 wrLo
-    gpiod = (gpiod & 0x38DC) | (data << 14) | ((data & 0x000C) >> 2) | ((data >> 13) << 8);
-    GPIOD->ODR = gpiod;
-    GPIOD->BSRR = GPIO_PIN_5; // wrHi
-    } while (ptr != end);
-
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_7, GPIO_PIN_SET);    // csHi
-
-  mWaitTime = HAL_GetTick() - mStartTime;
-
-  mChanged = false;
-  mNumPresents++;
-  }
-//}}}
-//{{{
-void cLcd::tftInit() {
-
-  //{{{  config lcd gpio
-  //  FMC_NOE     PD4
-  //  FMC_NWE     PD5
-  //  FMC_NE1     PD7
-  //  reset       PD12
-  //  FMC_A18     PD13
-
-  //  FMC_D0:D1   PD14:15
-  //  FMC_D2:D3   PD0:1
-  //  FMC_D4:D12  PE7:15
-  //  FMC_D13:D15 PD8:10
-
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOE_CLK_ENABLE();
-
-  // gpioD - FMC_D0:D1,FMC_D2:D3,FMC_D4:D12 FMC_NOE,FMC_NWE,FMC_NE1,reset,FMC_A18
-  GPIO_InitTypeDef gpio_init_structure;
-  gpio_init_structure.Pull = GPIO_NOPULL;
-  gpio_init_structure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  gpio_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
-  gpio_init_structure.Pin = GPIO_PIN_14 | GPIO_PIN_15 |
-                            GPIO_PIN_0  | GPIO_PIN_1  |
-                            GPIO_PIN_8  | GPIO_PIN_9  | GPIO_PIN_10 |
-                            GPIO_PIN_4  | GPIO_PIN_5  | GPIO_PIN_7  | GPIO_PIN_12 | GPIO_PIN_13;
-  HAL_GPIO_Init (GPIOD, &gpio_init_structure);
-  // rd,wr,cs,a18,reset Hi
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_7 | GPIO_PIN_12 | GPIO_PIN_13, GPIO_PIN_SET);
-
-  // gpioE - FMC_D4:D12
-  gpio_init_structure.Pin = GPIO_PIN_7  | GPIO_PIN_8  | GPIO_PIN_9  | GPIO_PIN_10 |
-                            GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
-  HAL_GPIO_Init (GPIOE, &gpio_init_structure);
-  //}}}
-  //{{{  reset pulse low
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_12, GPIO_PIN_RESET); // resetLo
-  vTaskDelay (1);
-
-  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_12, GPIO_PIN_SET);   // resetHi
-  vTaskDelay (120);
-  //}}}
-
-  // portrait mode with (0,0) being the top left. top is the side opposite the LCD connector.
-  sendCommandData (0x01, 0x023C);
-  sendCommandData (0x02, 0x0100);
-  sendCommandData (0x03, 0x1030);
-  sendCommandData (0x08, 0x0808);
-  sendCommandData (0x0A, 0x0500);
-  sendCommandData (0x0B, 0x0000);
-  sendCommandData (0x0C, 0x0770);
-  sendCommandData (0x0D, 0x0000);
-  sendCommandData (0x0E, 0x0001);
-  sendCommandData (0x11, 0x0406);
-  sendCommandData (0x12, 0x000E);
-  sendCommandData (0x13, 0x0222);
-  sendCommandData (0x14, 0x0015);
-  sendCommandData (0x15, 0x4277);
-  sendCommandData (0x16, 0x0000);
-
-  sendCommandData (0x30, 0x6A50);
-  sendCommandData (0x31, 0x00C9);
-  sendCommandData (0x32, 0xC7BE);
-  sendCommandData (0x33, 0x0003);
-  sendCommandData (0x36, 0x3443);
-  sendCommandData (0x3B, 0x0000);
-  sendCommandData (0x3C, 0x0000);
-  sendCommandData (0x2C, 0x6A50);
-  sendCommandData (0x2D, 0x00C9);
-  sendCommandData (0x2E, 0xC7BE);
-  sendCommandData (0x2F, 0x0003);
-  sendCommandData (0x35, 0x3443);
-  sendCommandData (0x39, 0x0000);
-  sendCommandData (0x3A, 0x0000);
-  sendCommandData (0x28, 0x6A50);
-  sendCommandData (0x29, 0x00C9);
-  sendCommandData (0x2A, 0xC7BE);
-  sendCommandData (0x2B, 0x0003);
-  sendCommandData (0x34, 0x3443);
-  sendCommandData (0x37, 0x0000);
-  sendCommandData (0x38, 0x0000);
-  vTaskDelay (10);
-
-  sendCommandData (0x12, 0x200E);
-  vTaskDelay (10);
-
-  sendCommandData (0x12, 0x2003);
-  vTaskDelay (10);
-
-  sendCommandData (0x44, 0x013F);
-  sendCommandData (0x45, 0x0000);
-  sendCommandData (0x46, 0x01DF);
-  sendCommandData (0x47, 0x0000);
-  sendCommandData (0x20, 0x0000);
-  sendCommandData (0x21, 0x013F);
-  sendCommandData (0x07, 0x0012);
-  vTaskDelay (10);
-
-  sendCommandData (0x07, 0x0017);
-  vTaskDelay (10);
-  }
 //}}}
 
 //{{{
@@ -1675,8 +1341,168 @@ void cLcd::drawInfo() {
     }
   }
 //}}}
+//{{{
+void cLcd::present() {
+
+  ready();
+  mDrawTime = HAL_GetTick() - mStartTime;
+
+  volatile uint16_t* dst = (volatile uint16_t*)0x60000000;
+  *dst = 0x20;
+  *dst = 0;
+  *dst = 0x21;
+  *dst = 0;
+  *dst = 0x22;
+
+  auto ptr = mBuffer;
+  dst = (volatile uint16_t*)0x60080000;
+  for (int i = 0; i < 320*480; i++)
+    *dst = *ptr++;
+
+  mWaitTime = HAL_GetTick() - mStartTime;
+
+  mNumPresents++;
+  }
+//}}}
+
 
 // private
+//{{{
+void cLcd::tftInit() {
+
+  //  gpio config
+  __HAL_RCC_FMC_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+
+  GPIO_InitTypeDef gpio_init_structure;
+  gpio_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
+  gpio_init_structure.Pull = GPIO_NOPULL;
+  gpio_init_structure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  gpio_init_structure.Pin = GPIO_PIN_12;
+  HAL_GPIO_Init (GPIOD, &gpio_init_structure);
+  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_12, GPIO_PIN_SET); // resetHi
+
+  gpio_init_structure.Alternate = GPIO_AF12_FMC;
+  gpio_init_structure.Mode = GPIO_MODE_AF_PP;
+  gpio_init_structure.Pull = GPIO_PULLUP;
+  gpio_init_structure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+
+  // gpioD - noe -> rd, nwe -> wr, ne1 ->cs, a18->rs
+  gpio_init_structure.Pin = GPIO_PIN_4  | GPIO_PIN_5  | GPIO_PIN_7 | GPIO_PIN_13 |
+                            GPIO_PIN_14 | GPIO_PIN_15 |               // d0:d1
+                            GPIO_PIN_0  | GPIO_PIN_1  |               // d2:d3
+                            GPIO_PIN_8  | GPIO_PIN_9  | GPIO_PIN_10;  // d13:d15
+  HAL_GPIO_Init (GPIOD, &gpio_init_structure);
+
+  // gpioE
+  gpio_init_structure.Pin = GPIO_PIN_7  | GPIO_PIN_8  | GPIO_PIN_9  | GPIO_PIN_10 |
+                            GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15; // d4:d12
+  HAL_GPIO_Init (GPIOE, &gpio_init_structure);
+
+  // reset pulse low
+  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_12, GPIO_PIN_RESET); // resetLo
+  vTaskDelay (1);
+  HAL_GPIO_WritePin (GPIOD, GPIO_PIN_12, GPIO_PIN_SET);   // resetHi
+  vTaskDelay (120);
+
+  //{{{  fmc config
+  hsram.Instance  = FMC_NORSRAM_DEVICE;
+  hsram.Extended  = FMC_NORSRAM_EXTENDED_DEVICE;
+
+  hsram.Init.NSBank             = FMC_NORSRAM_BANK1;
+  hsram.Init.DataAddressMux     = FMC_DATA_ADDRESS_MUX_DISABLE;
+  hsram.Init.MemoryType         = FMC_MEMORY_TYPE_SRAM;
+  hsram.Init.MemoryDataWidth    = FMC_NORSRAM_MEM_BUS_WIDTH_16;
+  hsram.Init.BurstAccessMode    = FMC_BURST_ACCESS_MODE_DISABLE;
+  hsram.Init.WaitSignalPolarity = FMC_WAIT_SIGNAL_POLARITY_LOW;
+  hsram.Init.WaitSignalActive   = FMC_WAIT_TIMING_BEFORE_WS;
+  hsram.Init.WriteOperation     = FMC_WRITE_OPERATION_ENABLE;
+  hsram.Init.WaitSignal         = FMC_WAIT_SIGNAL_DISABLE;
+  hsram.Init.ExtendedMode       = FMC_EXTENDED_MODE_DISABLE;
+  hsram.Init.AsynchronousWait   = FMC_ASYNCHRONOUS_WAIT_DISABLE;
+  hsram.Init.WriteBurst         = FMC_WRITE_BURST_DISABLE;
+  hsram.Init.ContinuousClock    = FMC_CONTINUOUS_CLOCK_SYNC_ONLY;
+
+  SRAM_Timing.AddressSetupTime       = 0; // 4
+  SRAM_Timing.AddressHoldTime        = 0;  // 1
+  SRAM_Timing.DataSetupTime          = 1;  // 2
+  SRAM_Timing.BusTurnAroundDuration  = 0;
+  SRAM_Timing.CLKDivision            = 0;
+  SRAM_Timing.DataLatency            = 0;
+  SRAM_Timing.AccessMode             = FMC_ACCESS_MODE_A;
+
+  if (HAL_SRAM_Init (&hsram, &SRAM_Timing, &SRAM_Timing) != HAL_OK)
+    printf ("init error\n");
+  //}}}
+
+  //{{{  send lcd commands
+  sendCommandData (0x01, 0x023C);
+  sendCommandData (0x02, 0x0100);
+  sendCommandData (0x03, 0x1030);
+  sendCommandData (0x08, 0x0808);
+  sendCommandData (0x0A, 0x0500);
+  sendCommandData (0x0B, 0x0000);
+  sendCommandData (0x0C, 0x0770);
+  sendCommandData (0x0D, 0x0000);
+  sendCommandData (0x0E, 0x0001);
+  sendCommandData (0x11, 0x0406);
+  sendCommandData (0x12, 0x000E);
+  sendCommandData (0x13, 0x0222);
+  sendCommandData (0x14, 0x0015);
+  sendCommandData (0x15, 0x4277);
+  sendCommandData (0x16, 0x0000);
+
+  sendCommandData (0x30, 0x6A50);
+  sendCommandData (0x31, 0x00C9);
+  sendCommandData (0x32, 0xC7BE);
+  sendCommandData (0x33, 0x0003);
+  sendCommandData (0x36, 0x3443);
+  sendCommandData (0x3B, 0x0000);
+  sendCommandData (0x3C, 0x0000);
+  sendCommandData (0x2C, 0x6A50);
+  sendCommandData (0x2D, 0x00C9);
+  sendCommandData (0x2E, 0xC7BE);
+  sendCommandData (0x2F, 0x0003);
+  sendCommandData (0x35, 0x3443);
+  sendCommandData (0x39, 0x0000);
+  sendCommandData (0x3A, 0x0000);
+  sendCommandData (0x28, 0x6A50);
+  sendCommandData (0x29, 0x00C9);
+  sendCommandData (0x2A, 0xC7BE);
+  sendCommandData (0x2B, 0x0003);
+  sendCommandData (0x34, 0x3443);
+  sendCommandData (0x37, 0x0000);
+  sendCommandData (0x38, 0x0000);
+  vTaskDelay (10);
+
+  sendCommandData (0x12, 0x200E);
+  vTaskDelay (10);
+
+  sendCommandData (0x12, 0x2003);
+  vTaskDelay (10);
+
+  sendCommandData (0x44, 0x013F);
+  sendCommandData (0x45, 0x0000);
+  sendCommandData (0x46, 0x01DF);
+  sendCommandData (0x47, 0x0000);
+  sendCommandData (0x20, 0x0000);
+  sendCommandData (0x21, 0x013F);
+  sendCommandData (0x07, 0x0012);
+  vTaskDelay (10);
+
+  sendCommandData (0x07, 0x0017);
+  vTaskDelay (10);
+  //}}}
+  }
+//}}}
+//{{{
+void cLcd::sendCommandData (uint16_t reg, uint16_t data) {
+
+  *((volatile uint16_t*)0x60000000) = reg;
+  *((volatile uint16_t*)0x60080000) = data;
+  }
+//}}}
 //{{{
 cFontChar* cLcd::loadChar (uint16_t fontHeight, char ch) {
 
