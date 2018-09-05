@@ -1,7 +1,7 @@
 // heap.cpp
-// sram 1    128k  0x20000000 0x00030000
-// sram 2     64k  0x20030000 0x00010000
-// sram 3    384k  0x20040000 0x00060000
+// SRAM 1  128k 0x20000000 0x00030000
+// SRAM 2   64k 0x20030000 0x00010000
+// SRAM 3  384k 0x20040000 0x00060000
 //{{{  includes
 #include <stdio.h>
 #include <stdlib.h>
@@ -246,7 +246,7 @@ private:
 //}}}
 
 
-// sram1 0x20000000 192k 0x30000
+// SRAM 1 0x20000000 192k 0x30000
 cRtosHeap* mSram1Heap = nullptr;
 
 uint8_t* sram1Alloc (size_t size) {
@@ -261,7 +261,7 @@ size_t getSram1FreeSize() { return mSram1Heap ? mSram1Heap->getFreeSize() : 0 ; 
 size_t getSram1MinFreeSize() { return mSram1Heap ? mSram1Heap->getMinFreeSize() : 0 ; }
 
 
-// sram2 - 0x2003000 64k  0x10000
+// SRAM 2 - 0x2003000 64k  0x10000
 cRtosHeap* mDtcmHeap = nullptr;
 
 uint8_t* dtcmAlloc (size_t size) {
@@ -271,12 +271,12 @@ uint8_t* dtcmAlloc (size_t size) {
   }
 void dtcmFree (void* ptr) { mDtcmHeap->free (ptr); }
 
-size_t getDtcmSize(){ return mDtcmHeap ? mDtcmHeap->getSize() : 0 ; }
+size_t getDtcmSize() { return mDtcmHeap ? mDtcmHeap->getSize() : 0 ; }
 size_t getDtcmFreeSize() { return mDtcmHeap ? mDtcmHeap->getFreeSize() : 0 ; }
 size_t getDtcmMinFreeSize() { return mDtcmHeap ? mDtcmHeap->getMinFreeSize() : 0 ; }
 
 
-// sram3 - 0x20040000 384k 0x60000 - system heap/static 32k 0x08000 -  use x20048000  0x80000
+// SRAM 3 - 0x20040000 384k 0x60000 - system heap/static 32k 0x08000 -  use x20048000  0x80000
 cRtosHeap* mSramHeap = nullptr;
 
 void* pvPortMalloc (size_t size) {
@@ -289,19 +289,3 @@ void vPortFree (void* ptr) { mSramHeap->free (ptr); }
 size_t getSramSize() { return mSramHeap ? mSramHeap->getSize() : 0 ; }
 size_t getSramFreeSize() { return mSramHeap ? mSramHeap->getFreeSize() : 0 ; }
 size_t getSramMinFreeSize() { return mSramHeap ? mSramHeap->getMinFreeSize() : 0 ; }
-
-//{{{
-//void* operator new (size_t size) {
-
-  //void* allocAddress = malloc (size);
-  //printf ("new %p %d\n", allocAddress, size);
-  //return allocAddress;
-  //}
-//}}}
-//{{{
-//void operator delete (void* ptr) {
-
-  //printf ("free %p\n", ptr);
-  //free (ptr);
-  //}
-//}}}

@@ -84,20 +84,19 @@ void uiThread (void* arg) {
 
 //{{{
 void clockConfig() {
-//  *            System Clock source            = PLL (MSI)
-//  *            SYSCLK(Hz)                     = 120000000
-//  *            HCLK(Hz)                       = 120000000
-//  *            AHB Prescaler                  = 1
-//  *            APB1 Prescaler                 = 1
-//  *            APB2 Prescaler                 = 1
-//  *            MSI Frequency(Hz)              = 4000000
-//  *            PLL_M                          = 1
-//  *            PLL_N                          = 60
-//  *            PLL_Q                          = 2
-//  *            PLL_R                          = 2
-//  *            PLL_P                          = 7
-//  *            Flash Latency(WS)              = 5
-
+// System Clock source = PLL (MSI)
+// SYSCLK(Hz)          = 120000000
+// HCLK(Hz)            = 120000000
+// AHB Prescaler       = 1
+// APB1 Prescaler      = 1
+// APB2 Prescaler      = 1
+// MSI Frequency(Hz)   = 4000000
+// PLL_M               = 1
+// PLL_N               = 60
+// PLL_Q               = 2
+// PLL_R               = 2
+// PLL_P               = 7
+// Flash Latency(WS)   = 5
 
   // Enable voltage range 1 boost mode for frequency above 80 Mhz
   __HAL_RCC_PWR_CLK_ENABLE();
@@ -117,13 +116,13 @@ void clockConfig() {
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLP = 7;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  if (HAL_RCC_OscConfig (&RCC_OscInitStruct) != HAL_OK)
     while (1);
 
   // avoid undershoot due to maximum frequency, select PLL system clock AHB prescaler divider 2 as first step
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | 
-                                 RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
+                                 RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2);
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
