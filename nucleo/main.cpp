@@ -83,36 +83,29 @@ void uiThread (void* arg) {
 //}}}
 
 //{{{
-/**
-  * @brief  System Clock Configuration
-  *         The system Clock is configured as follows :
-  *            System Clock source            = PLL (MSI)
-  *            SYSCLK(Hz)                     = 120000000
-  *            HCLK(Hz)                       = 120000000
-  *            AHB Prescaler                  = 1
-  *            APB1 Prescaler                 = 1
-  *            APB2 Prescaler                 = 1
-  *            MSI Frequency(Hz)              = 4000000
-  *            PLL_M                          = 1
-  *            PLL_N                          = 60
-  *            PLL_Q                          = 2
-  *            PLL_R                          = 2
-  *            PLL_P                          = 7
-  *            Flash Latency(WS)              = 5
-  * @param  None
-  * @retval None
-  */
 void clockConfig() {
+//  *            System Clock source            = PLL (MSI)
+//  *            SYSCLK(Hz)                     = 120000000
+//  *            HCLK(Hz)                       = 120000000
+//  *            AHB Prescaler                  = 1
+//  *            APB1 Prescaler                 = 1
+//  *            APB2 Prescaler                 = 1
+//  *            MSI Frequency(Hz)              = 4000000
+//  *            PLL_M                          = 1
+//  *            PLL_N                          = 60
+//  *            PLL_Q                          = 2
+//  *            PLL_R                          = 2
+//  *            PLL_P                          = 7
+//  *            Flash Latency(WS)              = 5
 
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
 
-  /* Enable voltage range 1 boost mode for frequency above 80 Mhz */
+  // Enable voltage range 1 boost mode for frequency above 80 Mhz
   __HAL_RCC_PWR_CLK_ENABLE();
-  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
+  HAL_PWREx_ControlVoltageScaling (PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
   __HAL_RCC_PWR_CLK_DISABLE();
 
-  /* Enable MSI Oscillator and activate PLL with MSI as source */
+  // Enable MSI Oscillator and activate PLL with MSI as source
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
@@ -125,33 +118,25 @@ void clockConfig() {
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLP = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    /* Initialization Error */
-    while(1);
-  }
+    while (1);
 
-  /* To avoid undershoot due to maximum frequency, select PLL as system clock source */
-  /* with AHB prescaler divider 2 as first step */
-  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+  // avoid undershoot due to maximum frequency, select PLL system clock AHB prescaler divider 2 as first step
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | 
+                                 RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-  if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
-  {
-    /* Initialization Error */
-    while(1);
-  }
+  if (HAL_RCC_ClockConfig (&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+    while (1);
 
-  /* AHB prescaler divider at 1 as second step */
+  // AHB prescaler divider at 1 as second step
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
-  {
-    /* Initialization Error */
-    while(1);
+  if (HAL_RCC_ClockConfig (&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+    while (1);
   }
-}
 //}}}
 
 int main() {

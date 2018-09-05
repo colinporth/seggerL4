@@ -1052,11 +1052,11 @@ cLcd::~cLcd() {
 //{{{
 void cLcd::init (const std::string& title) {
 
-  mBuffer = (uint16_t*)pvPortMalloc (LCD_WIDTH*LCD_HEIGHT*2);
+  FT_Init_FreeType (&FTlibrary);
+  FT_New_Memory_Face (FTlibrary, (FT_Byte*)freeSansBold, sizeof (freeSansBold), 0, &FTface);
+  FTglyphSlot = FTface->glyph;
 
-  //FT_Init_FreeType (&FTlibrary);
-  //FT_New_Memory_Face (FTlibrary, (FT_Byte*)freeSansBold, sizeof (freeSansBold), 0, &FTface);
-  //FTglyphSlot = FTface->glyph;
+  mBuffer = (uint16_t*)pvPortMalloc (LCD_WIDTH*LCD_HEIGHT*2);
 
   mTitle = title;
 
@@ -1216,8 +1216,6 @@ void cLcd::ellipse (sRgba565 colour, cPoint centre, cPoint radius) {
 //}}}
 //{{{
 int cLcd::text (sRgba565 colour, uint16_t fontHeight, const std::string& str, cRect r) {
-
-  return 0;
 
   ready();
   DMA2D->FGPFCCR = (colour.getA() < 255) ? ((colour.getA() << 24) | 0x20000 | DMA2D_INPUT_A8) : DMA2D_INPUT_A8;
