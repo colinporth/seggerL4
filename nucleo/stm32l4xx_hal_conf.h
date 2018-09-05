@@ -23,6 +23,7 @@
 #define HAL_RTC_MODULE_ENABLED
 #define HAL_SPI_MODULE_ENABLED
 #define HAL_TIM_MODULE_ENABLED
+#define HAL_SRAM_MODULE_ENABLED
 //}}}
 
 #if !defined  (HSE_VALUE)
@@ -249,7 +250,7 @@
   void assert_failed(uint8_t* file, uint32_t line);
 #else
   #define assert_param(expr) ((void)0)
-#endif 
+#endif
 
 //{{{
 #ifdef __cplusplus
