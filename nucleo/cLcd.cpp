@@ -1416,22 +1416,18 @@ void cLcd::tftInit() {
   #define FMC_NORSRAM_DEVICE           FMC_Bank1_R
   #define FMC_WRITE_OPERATION_ENABLE   FMC_BCRx_WREN
   #define FMC_NORSRAM_MEM_BUS_WIDTH_16 FMC_BCRx_MWID_0
-  #define FMC_NORSRAM_BANK1            0x00000000
-  #define FMC_MEMORY_TYPE_SRAM         0x00000000
-  #define FMC_ACCESS_MODE_A            0x00000000
 
-  #define kAddressSetupTime 1
+  #define kAddressSetupTime 3 // 33ns @ 120Mhz, 8.3ns
   #define kAddressHoldTime  0
-  #define kDataSetupTime    2
+  #define kDataSetupTime    4 // 33ns @ 120Mhz, 8.3ns
 
-  FMC_NORSRAM_DEVICE->BTCR [FMC_NORSRAM_BANK1+1] =
-    FMC_ACCESS_MODE_A |
-    kAddressSetupTime |
-    (kAddressHoldTime << POSITION_VAL(FMC_BTRx_ADDHLD)) |
-    (kDataSetupTime << POSITION_VAL(FMC_BTRx_DATAST));
+  // FMC_NORSRAM_BANK1 - FMC_ACCESS_MODE_A
+  FMC_NORSRAM_DEVICE->BTCR [1] = kAddressSetupTime |
+                                (kAddressHoldTime << POSITION_VAL(FMC_BTRx_ADDHLD)) |
+                                (kDataSetupTime   << POSITION_VAL(FMC_BTRx_DATAST));
 
-  FMC_NORSRAM_DEVICE->BTCR [FMC_NORSRAM_BANK1] =
-    FMC_MEMORY_TYPE_SRAM | FMC_NORSRAM_MEM_BUS_WIDTH_16 | FMC_WRITE_OPERATION_ENABLE | FMC_BCRx_MBKEN;
+  // FMC_NORSRAM_BANK1 - FMC_MEMORY_TYPE_SRAM
+  FMC_NORSRAM_DEVICE->BTCR [0] = FMC_NORSRAM_MEM_BUS_WIDTH_16 | FMC_WRITE_OPERATION_ENABLE | FMC_BCRx_MBKEN;
 
   //{{{  send lcd commands
   sendCommandData (0x01, 0x023C);
