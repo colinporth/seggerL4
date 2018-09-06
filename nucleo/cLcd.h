@@ -28,10 +28,10 @@ struct sRgba {
   sRgba (uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) :
     rgb565 (((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)), alpha(a) {}
 
-  uint8_t getR() { return (rgb565 & 0xF800) >> 8; }
-  uint8_t getG() { return (rgb565 & 0x07E0) >> 3; }
-  uint8_t getB() { return (rgb565 & 0x001F) << 3; }
-  uint8_t getA() { return alpha; }
+  uint8_t getR() const { return (rgb565 & 0xF800) >> 8; }
+  uint8_t getG() const { return (rgb565 & 0x07E0) >> 3; }
+  uint8_t getB() const { return (rgb565 & 0x001F) << 3; }
+  uint8_t getA() const { return alpha; }
 
   uint16_t rgb565;
   uint8_t alpha;
@@ -117,21 +117,21 @@ public:
   void info (sRgba colour, const std::string& str);
   void info (const std::string& str) { info (kWhite, str); }
 
-  void clear (sRgba colour);
-  void rect (sRgba colour, const cRect& r);
-  void rectClipped (sRgba colour, cRect r);
-  void rectOutline (sRgba colour, const cRect& r, uint8_t thickness);
-  void ellipse (sRgba colour, cPoint centre, cPoint radius);
-  int text (sRgba colour, uint16_t fontHeight, const std::string& str, cRect r);
+  void clear (const sRgba colour);
+  void rect (const sRgba colour, const cRect& r);
+  void rectClipped (const sRgba colour, cRect r);
+  void rectOutline (const sRgba colour, const cRect& r, uint8_t thickness);
+  void ellipse (const sRgba colour, cPoint centre, cPoint radius);
+  int text (const sRgba colour, uint16_t fontHeight, const std::string& str, cRect r);
 
   void copy (cTile* tile, cPoint p);
   void copy90 (cTile* tile, cPoint p);
   void size (cTile* tile, const cRect& r);
 
-  inline void pixel (sRgba colour, cPoint p) { *(mBuffer + p.y * getWidth() + p.x) = colour.rgb565; }
-  void grad (sRgba colTL, sRgba colTR, sRgba colBL, sRgba colBR, const cRect& r);
-  void line (sRgba colour, cPoint p1, cPoint p2);
-  void ellipseOutline (sRgba colour, cPoint centre, cPoint radius);
+  inline void pixel (const sRgba colour, cPoint p) { *(mBuffer + p.y * getWidth() + p.x) = colour.rgb565; }
+  void grad (const sRgba colTL, const sRgba colTR, const sRgba colBL, const sRgba colBR, const cRect& r);
+  void line (const sRgba colour, cPoint p1, cPoint p2);
+  void ellipseOutline (const sRgba colour, cPoint centre, cPoint radius);
 
   // agg anti aliased
   void aMoveTo (const cPointF& p);
@@ -140,7 +140,7 @@ public:
   void aPointedLine (const cPointF& p1, const cPointF& p2, float width);
   void aEllipseOutline (const cPointF& centre, const cPointF& radius, float width, int steps);
   void aEllipse (const cPointF& centre, const cPointF& radius, int steps);
-  void aRender (sRgba colour, bool fillNonZero = true);
+  void aRender (const sRgba colour, bool fillNonZero = true);
 
   void display (int brightness);
   void start();
@@ -158,7 +158,7 @@ private:
   void reset();
 
   uint8_t calcAlpha (int area, bool fillNonZero) const;
-  void renderScanLine (cScanLine* scanLine, sRgba colour);
+  void renderScanLine (cScanLine* scanLine, const sRgba colour);
 
   //{{{  vars
   TIM_HandleTypeDef mTimHandle;
