@@ -31,7 +31,8 @@ void uiThread (void* arg) {
   lcd->display (70);
 
   while (true) {
-    if (lcd->isChanged() || (lcd->getPresentTime() >= 1000)) {
+    //if (lcd->isChanged() || (lcd->getPresentTime() >= 1000)) {
+    if (true) {
       lcd->start();
       lcd->clear (kBlack);
       lcd->setShowInfo (BSP_PB_GetState (BUTTON_KEY) == 0);
@@ -61,6 +62,10 @@ void uiThread (void* arg) {
       float secondR = radius * 0.95f;
       lcd->aPointedLine (centre, centre + cPointF (secondR * sin (secondA), secondR * cos (secondA)), handWidth);
       lcd->aRender (sRgba565 (255,0,0, 180));
+
+      float subSecondR = radius * 0.95f;
+      lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
+      lcd->aRender (sRgba565 (255,255,0, 128));
       //}}}
       lcd->cLcd::text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
       lcd->present();
