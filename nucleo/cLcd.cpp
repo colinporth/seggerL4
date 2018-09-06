@@ -1318,7 +1318,7 @@ void cLcd::drawInfo() {
     // draw footer
     auto y = getHeight() - kFooterHeight - kGap;
     text (kWhite, kFooterHeight,
-          dec(mNumPresents) + ":" + dec (mDrawTime) + ":" + dec (mWaitTime) + " " +
+          dec(mNumPresents) + ":" + dec (mDrawTime) + ":" + dec (mPresentTime) + " " +
           dec (osGetCPUUsage()) + "%"
           " 1:" + dec (getSram1FreeSize()/1000) + ":" + dec (getSram1Size()/1000) +
           " 2:" + dec (getDtcmFreeSize()/1000) + ":" + dec (getDtcmSize()/1000) +
@@ -1344,9 +1344,6 @@ void cLcd::drawInfo() {
 //{{{
 void cLcd::present() {
 
-  ready();
-  mDrawTime = HAL_GetTick() - mStartTime;
-
   volatile uint16_t* dst = (volatile uint16_t*)0x60000000;
   *dst = 0x20;
   *dst = 0;
@@ -1354,6 +1351,10 @@ void cLcd::present() {
   *dst = 0;
   *dst = 0x22;
 
+  ready();
+  mDrawTime = HAL_GetTick() - mStartTime;
+  mPresentTime = HAL_GetTick() - mLastPresentTime;
+  mLastPresentTime = HAL_GetTick();
 
   DMA2D->FGPFCCR = DMA2D_INPUT_RGB565;
   DMA2D->FGMAR = (uint32_t)mBuffer;
@@ -1363,9 +1364,6 @@ void cLcd::present() {
   DMA2D->NLR = (320 << 16) | 480;
   DMA2D->CR = DMA2D_M2M_PFC | DMA2D_CR_START | DMA2D_CR_TCIE | DMA2D_CR_TEIE | DMA2D_CR_CEIE;
   mDma2dWait = eWaitIrq;
-  ready();
-
-  mWaitTime = HAL_GetTick() - mStartTime;
 
   mNumPresents++;
   }

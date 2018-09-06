@@ -167,9 +167,10 @@ private:
   uint16_t* mBuffer = nullptr;
 
   uint32_t mBaseTime = 0;
+  uint32_t mLastPresentTime = 0;
+  uint32_t mPresentTime = 0;
   uint32_t mStartTime = 0;
   uint32_t mDrawTime = 0;
-  uint32_t mWaitTime = 0;
   uint32_t mNumPresents = 0;
 
   // truetype
