@@ -1365,7 +1365,6 @@ void cLcd::present() {
   }
 //}}}
 
-
 // private
 //{{{
 void cLcd::tftInit() {
