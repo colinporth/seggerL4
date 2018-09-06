@@ -1354,10 +1354,16 @@ void cLcd::present() {
   *dst = 0;
   *dst = 0x22;
 
-  auto ptr = mBuffer;
-  dst = (volatile uint16_t*)0x60080000;
-  for (int i = 0; i < 320*480; i++)
-    *dst = *ptr++;
+
+  DMA2D->FGPFCCR = DMA2D_INPUT_RGB565;
+  DMA2D->FGMAR = (uint32_t)mBuffer;
+  DMA2D->FGOR = 0;
+  DMA2D->OMAR = 0x60080000;
+  DMA2D->OOR = 0;
+  DMA2D->NLR = (320 << 16) | 480;
+  DMA2D->CR = DMA2D_M2M_PFC | DMA2D_CR_START | DMA2D_CR_TCIE | DMA2D_CR_TEIE | DMA2D_CR_CEIE;
+  mDma2dWait = eWaitIrq;
+  ready();
 
   mWaitTime = HAL_GetTick() - mStartTime;
 
@@ -1423,9 +1429,9 @@ void cLcd::tftInit() {
   hsram.Init.WriteBurst         = FMC_WRITE_BURST_DISABLE;
   hsram.Init.ContinuousClock    = FMC_CONTINUOUS_CLOCK_SYNC_ONLY;
 
-  SRAM_Timing.AddressSetupTime       = 0; // 4
-  SRAM_Timing.AddressHoldTime        = 0;  // 1
-  SRAM_Timing.DataSetupTime          = 1;  // 2
+  SRAM_Timing.AddressSetupTime       = 1;
+  SRAM_Timing.AddressHoldTime        = 0;
+  SRAM_Timing.DataSetupTime          = 2;
   SRAM_Timing.BusTurnAroundDuration  = 0;
   SRAM_Timing.CLKDivision            = 0;
   SRAM_Timing.DataLatency            = 0;
