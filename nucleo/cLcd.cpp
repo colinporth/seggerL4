@@ -660,8 +660,6 @@ public:
 cLcd* cLcd::mLcd = nullptr;
 
 static DMA2D_HandleTypeDef DMA2D_Handle;
-static SRAM_HandleTypeDef hsram;
-static FMC_NORSRAM_TimingTypeDef SRAM_Timing;
 
 static cLcd::eDma2dWait mDma2dWait = cLcd::eWaitNone;
 
@@ -1415,9 +1413,17 @@ void cLcd::tftInit() {
   //}}}
 
   //  fmc config - SRAM bank1 0x60000000 accessModeA
+  #define FMC_NORSRAM_DEVICE           FMC_Bank1_R
+  #define FMC_WRITE_OPERATION_ENABLE   FMC_BCRx_WREN
+  #define FMC_NORSRAM_MEM_BUS_WIDTH_16 FMC_BCRx_MWID_0
+  #define FMC_NORSRAM_BANK1            0x00000000
+  #define FMC_MEMORY_TYPE_SRAM         0x00000000
+  #define FMC_ACCESS_MODE_A            0x00000000
+
   #define kAddressSetupTime 1
   #define kAddressHoldTime  0
   #define kDataSetupTime    2
+
   FMC_NORSRAM_DEVICE->BTCR [FMC_NORSRAM_BANK1+1] =
     FMC_ACCESS_MODE_A |
     kAddressSetupTime |
