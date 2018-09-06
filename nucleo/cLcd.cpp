@@ -682,6 +682,135 @@ static uint32_t mNumStamps = 0;
 //}}}
 
 //{{{
+/* --- PCR Register ---*/
+/* PCR register clear mask */
+#define PCR_CLEAR_MASK    ((uint32_t)(FMC_PCR_PWAITEN | FMC_PCR_PBKEN  | \
+                                      FMC_PCR_PTYP    | FMC_PCR_PWID   | \
+                                      FMC_PCR_ECCEN   | FMC_PCR_TCLR   | \
+                                      FMC_PCR_TAR     | FMC_PCR_ECCPS))
+
+/* --- PMEM Register ---*/
+/* PMEM register clear mask */
+#define PMEM_CLEAR_MASK   ((uint32_t)(FMC_PMEM_MEMSET  | FMC_PMEM_MEMWAIT |\
+                                      FMC_PMEM_MEMHOLD | FMC_PMEM_MEMHIZ))
+
+/* --- PATT Register ---*/
+/* PATT register clear mask */
+#define PATT_CLEAR_MASK   ((uint32_t)(FMC_PATT_ATTSET  | FMC_PATT_ATTWAIT |\
+                                      FMC_PATT_ATTHOLD | FMC_PATT_ATTHIZ))
+
+/* --- BCR Register ---*/
+/* BCR register clear mask */
+#if defined(FMC_BCRx_NBLSET)
+#define BCR_CLEAR_MASK                  ((uint32_t)(FMC_BCRx_MBKEN   | FMC_BCRx_MUXEN     |\
+                                                    FMC_BCRx_MTYP    | FMC_BCRx_MWID      |\
+                                                    FMC_BCRx_FACCEN  | FMC_BCRx_BURSTEN   |\
+                                                    FMC_BCRx_WAITPOL | FMC_BCRx_WAITCFG   |\
+                                                    FMC_BCRx_WREN    | FMC_BCRx_WAITEN    |\
+                                                    FMC_BCRx_EXTMOD  | FMC_BCRx_ASYNCWAIT |\
+                                                    FMC_BCRx_CPSIZE  | FMC_BCRx_CBURSTRW  |\
+                                                    FMC_BCR1_CCLKEN  | FMC_BCR1_WFDIS     |\
+                                                    FMC_BCRx_NBLSET))
+#elif defined(FMC_BCR1_WFDIS)
+#define BCR_CLEAR_MASK                  ((uint32_t)(FMC_BCRx_MBKEN   | FMC_BCRx_MUXEN     |\
+                                                    FMC_BCRx_MTYP    | FMC_BCRx_MWID      |\
+                                                    FMC_BCRx_FACCEN  | FMC_BCRx_BURSTEN   |\
+                                                    FMC_BCRx_WAITPOL | FMC_BCRx_WAITCFG   |\
+                                                    FMC_BCRx_WREN    | FMC_BCRx_WAITEN    |\
+                                                    FMC_BCRx_EXTMOD  | FMC_BCRx_ASYNCWAIT |\
+                                                    FMC_BCRx_CPSIZE  | FMC_BCRx_CBURSTRW  |\
+                                                    FMC_BCR1_CCLKEN  | FMC_BCR1_WFDIS))
+#else
+#define BCR_CLEAR_MASK                  ((uint32_t)(FMC_BCRx_MBKEN   | FMC_BCRx_MUXEN     |\
+                                                    FMC_BCRx_MTYP    | FMC_BCRx_MWID      |\
+                                                    FMC_BCRx_FACCEN  | FMC_BCRx_BURSTEN   |\
+                                                    FMC_BCRx_WAITPOL | FMC_BCRx_WAITCFG   |\
+                                                    FMC_BCRx_WREN    | FMC_BCRx_WAITEN    |\
+                                                    FMC_BCRx_EXTMOD  | FMC_BCRx_ASYNCWAIT |\
+                                                    FMC_BCRx_CPSIZE  | FMC_BCRx_CBURSTRW  |\
+                                                    FMC_BCR1_CCLKEN))
+#endif /* FMC_BCR1_WFDIS */
+
+/* --- BTR Register ---*/
+/* BTR register clear mask */
+#if defined(FMC_BTRx_DATAHLD)
+#define BTR_CLEAR_MASK                  ((uint32_t)(FMC_BTRx_ADDSET | FMC_BTRx_ADDHLD  |\
+                                                    FMC_BTRx_DATAST | FMC_BTRx_BUSTURN |\
+                                                    FMC_BTRx_CLKDIV | FMC_BTRx_DATLAT  |\
+                                                    FMC_BTRx_ACCMOD | FMC_BTRx_DATAHLD))
+#else
+#define BTR_CLEAR_MASK                  ((uint32_t)(FMC_BTRx_ADDSET | FMC_BTRx_ADDHLD  |\
+                                                    FMC_BTRx_DATAST | FMC_BTRx_BUSTURN |\
+                                                    FMC_BTRx_CLKDIV | FMC_BTRx_DATLAT  |\
+                                                    FMC_BTRx_ACCMOD))
+#endif /* FMC_BTRx_DATAHLD */
+
+/* --- BWTR Register ---*/
+/* BWTR register clear mask */
+#if defined(FMC_BWTRx_DATAHLD)
+#define BWTR_CLEAR_MASK                ((uint32_t)(FMC_BWTRx_ADDSET | FMC_BWTRx_ADDHLD  |\
+                                                   FMC_BWTRx_DATAST | FMC_BWTRx_BUSTURN |\
+                                                   FMC_BWTRx_ACCMOD | FMC_BWTRx_DATAHLD))
+#else
+#define BWTR_CLEAR_MASK                ((uint32_t)(FMC_BWTRx_ADDSET | FMC_BWTRx_ADDHLD  |\
+                                                   FMC_BWTRx_DATAST | FMC_BWTRx_BUSTURN |\
+                                                   FMC_BWTRx_ACCMOD))
+#endif /* FMC_BWTRx_DATAHLD */
+//}}}
+//{{{
+/**
+  * @brief  Initialize the FMC_NORSRAM Timing according to the specified
+  *         parameters in the FMC_NORSRAM_TimingTypeDef
+  * @param  Device Pointer to NORSRAM device instance
+  * @param  Timing Pointer to NORSRAM Timing structure
+  * @param  Bank NORSRAM bank number
+  * @retval HAL status
+  */
+HAL_StatusTypeDef lFMC_NORSRAM_Timing_Init (FMC_NORSRAM_TypeDef *Device, FMC_NORSRAM_TimingTypeDef *Timing, uint32_t Bank)
+{
+  uint32_t tmpr = 0;
+
+  /* Check the parameters */
+  assert_param(IS_FMC_NORSRAM_DEVICE(Device));
+  assert_param(IS_FMC_ADDRESS_SETUP_TIME(Timing->AddressSetupTime));
+  assert_param(IS_FMC_ADDRESS_HOLD_TIME(Timing->AddressHoldTime));
+  assert_param(IS_FMC_DATASETUP_TIME(Timing->DataSetupTime));
+#if defined(FMC_BTRx_DATAHLD)
+  assert_param(IS_FMC_DATAHOLD_TIME(Timing->DataHoldTime));
+#endif /* FMC_BTRx_DATAHLD */
+  assert_param(IS_FMC_TURNAROUND_TIME(Timing->BusTurnAroundDuration));
+  assert_param(IS_FMC_CLK_DIV(Timing->CLKDivision));
+  assert_param(IS_FMC_DATA_LATENCY(Timing->DataLatency));
+  assert_param(IS_FMC_ACCESS_MODE(Timing->AccessMode));
+  assert_param(IS_FMC_NORSRAM_BANK(Bank));
+
+  /* Set FMC_NORSRAM device timing parameters */
+  MODIFY_REG(Device->BTCR[Bank + 1],
+             BTR_CLEAR_MASK,
+             (uint32_t)(Timing->AddressSetupTime                                                   |
+                        ((Timing->AddressHoldTime)        << POSITION_VAL(FMC_BTRx_ADDHLD))        |
+                        ((Timing->DataSetupTime)          << POSITION_VAL(FMC_BTRx_DATAST))        |
+#if defined(FMC_BTRx_DATAHLD)
+                        ((Timing->DataHoldTime)           << POSITION_VAL(FMC_BTRx_DATAHLD))       |
+#endif /* FMC_BTRx_DATAHLD */
+                        ((Timing->BusTurnAroundDuration)  << POSITION_VAL(FMC_BTRx_BUSTURN))       |
+                        (((Timing->CLKDivision) - 1)      << POSITION_VAL(FMC_BTRx_CLKDIV))        |
+                        (((Timing->DataLatency) - 2)      << POSITION_VAL(FMC_BTRx_DATLAT))        |
+                        (Timing->AccessMode)));
+
+  /* Configure Clock division value (in NORSRAM bank 1) when continuous clock is enabled */
+  if (HAL_IS_BIT_SET(Device->BTCR[FMC_NORSRAM_BANK1], FMC_BCR1_CCLKEN))
+  {
+    tmpr = (uint32_t)(Device->BTCR[FMC_NORSRAM_BANK1 + 1] & ~(((uint32_t)0x0F) << POSITION_VAL(FMC_BTRx_CLKDIV)));
+    tmpr |= (uint32_t)(((Timing->CLKDivision) - 1) << POSITION_VAL(FMC_BTRx_CLKDIV));
+    MODIFY_REG(Device->BTCR[FMC_NORSRAM_BANK1 + 1], FMC_BTRx_CLKDIV, tmpr);
+  }
+
+  return HAL_OK;
+}
+//}}}
+
+//{{{
 extern "C" { void DMA2D_IRQHandler() {
 
   uint32_t isr = DMA2D->ISR;
@@ -1353,7 +1482,7 @@ void cLcd::present() {
 
   ready();
   mDrawTime = HAL_GetTick() - mStartTime;
-  mPresentTime = HAL_GetTick() - mLastPresentTime;
+  mPresentTime = getPresentTime();
   mLastPresentTime = HAL_GetTick();
 
   DMA2D->FGPFCCR = DMA2D_INPUT_RGB565;
@@ -1373,11 +1502,13 @@ void cLcd::present() {
 //{{{
 void cLcd::tftInit() {
 
-  //  gpio config
+  //{{{  clock config
   __HAL_RCC_FMC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
+  //}}}
 
+  // gpio config
   GPIO_InitTypeDef gpio_init_structure;
   gpio_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
   gpio_init_structure.Pull = GPIO_NOPULL;
@@ -1403,41 +1534,25 @@ void cLcd::tftInit() {
                             GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15; // d4:d12
   HAL_GPIO_Init (GPIOE, &gpio_init_structure);
 
-  // reset pulse low
+  //{{{  reset pulse low
   HAL_GPIO_WritePin (GPIOD, GPIO_PIN_12, GPIO_PIN_RESET); // resetLo
   vTaskDelay (1);
   HAL_GPIO_WritePin (GPIOD, GPIO_PIN_12, GPIO_PIN_SET);   // resetHi
   vTaskDelay (120);
-
-  //{{{  fmc config
-  hsram.Instance  = FMC_NORSRAM_DEVICE;
-  hsram.Extended  = FMC_NORSRAM_EXTENDED_DEVICE;
-
-  hsram.Init.NSBank             = FMC_NORSRAM_BANK1;
-  hsram.Init.DataAddressMux     = FMC_DATA_ADDRESS_MUX_DISABLE;
-  hsram.Init.MemoryType         = FMC_MEMORY_TYPE_SRAM;
-  hsram.Init.MemoryDataWidth    = FMC_NORSRAM_MEM_BUS_WIDTH_16;
-  hsram.Init.BurstAccessMode    = FMC_BURST_ACCESS_MODE_DISABLE;
-  hsram.Init.WaitSignalPolarity = FMC_WAIT_SIGNAL_POLARITY_LOW;
-  hsram.Init.WaitSignalActive   = FMC_WAIT_TIMING_BEFORE_WS;
-  hsram.Init.WriteOperation     = FMC_WRITE_OPERATION_ENABLE;
-  hsram.Init.WaitSignal         = FMC_WAIT_SIGNAL_DISABLE;
-  hsram.Init.ExtendedMode       = FMC_EXTENDED_MODE_DISABLE;
-  hsram.Init.AsynchronousWait   = FMC_ASYNCHRONOUS_WAIT_DISABLE;
-  hsram.Init.WriteBurst         = FMC_WRITE_BURST_DISABLE;
-  hsram.Init.ContinuousClock    = FMC_CONTINUOUS_CLOCK_SYNC_ONLY;
-
-  SRAM_Timing.AddressSetupTime       = 1;
-  SRAM_Timing.AddressHoldTime        = 0;
-  SRAM_Timing.DataSetupTime          = 2;
-  SRAM_Timing.BusTurnAroundDuration  = 0;
-  SRAM_Timing.CLKDivision            = 0;
-  SRAM_Timing.DataLatency            = 0;
-  SRAM_Timing.AccessMode             = FMC_ACCESS_MODE_A;
-
-  if (HAL_SRAM_Init (&hsram, &SRAM_Timing, &SRAM_Timing) != HAL_OK)
-    printf ("init error\n");
   //}}}
+
+  //  fmc config - SRAM bank1 0x60000000 accessModeA
+  #define kAddressSetupTime 1
+  #define kAddressHoldTime  0
+  #define kDataSetupTime    2
+  FMC_NORSRAM_DEVICE->BTCR [FMC_NORSRAM_BANK1+1] =
+    FMC_ACCESS_MODE_A |
+    kAddressSetupTime |
+    (kAddressHoldTime << POSITION_VAL(FMC_BTRx_ADDHLD)) |
+    (kDataSetupTime << POSITION_VAL(FMC_BTRx_DATAST));
+
+  FMC_NORSRAM_DEVICE->BTCR [FMC_NORSRAM_BANK1] =
+    FMC_MEMORY_TYPE_SRAM | FMC_NORSRAM_MEM_BUS_WIDTH_16 | FMC_WRITE_OPERATION_ENABLE | FMC_BCRx_MBKEN;
 
   //{{{  send lcd commands
   sendCommandData (0x01, 0x023C);

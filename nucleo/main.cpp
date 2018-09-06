@@ -30,10 +30,8 @@ void uiThread (void* arg) {
   lcd->tftInit();
   lcd->display (70);
 
-  int count = 0;
   while (true) {
-    if (lcd->isChanged() || (count == 1000)) {
-      count = 0;
+    if (lcd->isChanged() || (lcd->getPresentTime() >= 1000)) {
       lcd->start();
       lcd->clear (kBlack);
       lcd->setShowInfo (BSP_PB_GetState (BUTTON_KEY) == 0);
@@ -74,10 +72,8 @@ void uiThread (void* arg) {
         lcd->change();
         }
       }
-    else {
-      count++;
+    else
       vTaskDelay (1);
-      }
     }
   }
 //}}}

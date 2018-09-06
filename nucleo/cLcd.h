@@ -101,6 +101,7 @@ public:
   static uint16_t getBigFontHeight() { return BIG_FONT_HEIGHT; }
 
   uint16_t getBrightness() { return mBrightness; }
+  uint32_t getPresentTime() { return HAL_GetTick() - mLastPresentTime; }
 
   void setShowInfo (bool show);
   void setTitle (const std::string& str) { mTitle = str; mChanged = true; }
