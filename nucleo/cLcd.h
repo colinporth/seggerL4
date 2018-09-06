@@ -24,8 +24,8 @@
 #define BIG_FONT_HEIGHT    40
 //}}}
 //{{{
-struct sRgba565 {
-  sRgba565 (uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) :
+struct sRgba {
+  sRgba (uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) :
     rgb565 (((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)), alpha(a) {}
 
   uint8_t getR() { return (rgb565 & 0xF800) >> 8; }
@@ -38,18 +38,18 @@ struct sRgba565 {
   };
 //}}}
 //{{{  colour const
-const sRgba565 kBlack (0,0,0);
-const sRgba565 kBlackSemi (0,0,0, 128);
-const sRgba565 kGrey (128,128,128);
-const sRgba565 kWhite (255,255,255);
+const sRgba kBlack (0,0,0);
+const sRgba kBlackSemi (0,0,0, 128);
+const sRgba kGrey (128,128,128);
+const sRgba kWhite (255,255,255);
 
-const sRgba565 kBlue (0,0,255);
-const sRgba565 kGreen (0,255,0);
-const sRgba565 kRed (255,0,0);
+const sRgba kBlue (0,0,255);
+const sRgba kGreen (0,255,0);
+const sRgba kRed (255,0,0);
 
-const sRgba565 kCyan (0,255,255);
-const sRgba565 kMagenta (255,0,255);
-const sRgba565 kYellow (255,255,0);
+const sRgba kCyan (0,255,255);
+const sRgba kMagenta (255,0,255);
+const sRgba kYellow (255,255,0);
 //}}}
 
 //{{{
@@ -114,24 +114,24 @@ public:
     }
   //}}}
 
-  void info (sRgba565 colour, const std::string& str);
+  void info (sRgba colour, const std::string& str);
   void info (const std::string& str) { info (kWhite, str); }
 
-  void clear (sRgba565 colour);
-  void rect (sRgba565 colour, const cRect& r);
-  void rectClipped (sRgba565 colour, cRect r);
-  void rectOutline (sRgba565 colour, const cRect& r, uint8_t thickness);
-  void ellipse (sRgba565 colour, cPoint centre, cPoint radius);
-  int text (sRgba565 colour, uint16_t fontHeight, const std::string& str, cRect r);
+  void clear (sRgba colour);
+  void rect (sRgba colour, const cRect& r);
+  void rectClipped (sRgba colour, cRect r);
+  void rectOutline (sRgba colour, const cRect& r, uint8_t thickness);
+  void ellipse (sRgba colour, cPoint centre, cPoint radius);
+  int text (sRgba colour, uint16_t fontHeight, const std::string& str, cRect r);
 
   void copy (cTile* tile, cPoint p);
   void copy90 (cTile* tile, cPoint p);
   void size (cTile* tile, const cRect& r);
 
-  inline void pixel (sRgba565 colour, cPoint p) { *(mBuffer + p.y * getWidth() + p.x) = colour.rgb565; }
-  void grad (sRgba565 colTL, sRgba565 colTR, sRgba565 colBL, sRgba565 colBR, const cRect& r);
-  void line (sRgba565 colour, cPoint p1, cPoint p2);
-  void ellipseOutline (sRgba565 colour, cPoint centre, cPoint radius);
+  inline void pixel (sRgba colour, cPoint p) { *(mBuffer + p.y * getWidth() + p.x) = colour.rgb565; }
+  void grad (sRgba colTL, sRgba colTR, sRgba colBL, sRgba colBR, const cRect& r);
+  void line (sRgba colour, cPoint p1, cPoint p2);
+  void ellipseOutline (sRgba colour, cPoint centre, cPoint radius);
 
   // agg anti aliased
   void aMoveTo (const cPointF& p);
@@ -140,7 +140,7 @@ public:
   void aPointedLine (const cPointF& p1, const cPointF& p2, float width);
   void aEllipseOutline (const cPointF& centre, const cPointF& radius, float width, int steps);
   void aEllipse (const cPointF& centre, const cPointF& radius, int steps);
-  void aRender (sRgba565 colour, bool fillNonZero = true);
+  void aRender (sRgba colour, bool fillNonZero = true);
 
   void display (int brightness);
   void start();
@@ -158,7 +158,7 @@ private:
   void reset();
 
   uint8_t calcAlpha (int area, bool fillNonZero) const;
-  void renderScanLine (cScanLine* scanLine, sRgba565 colour);
+  void renderScanLine (cScanLine* scanLine, sRgba colour);
 
   //{{{  vars
   TIM_HandleTypeDef mTimHandle;
@@ -202,7 +202,7 @@ private:
     //}}}
 
     int mTime = 0;
-    sRgba565 mColour = kWhite;
+    sRgba mColour = kWhite;
     std::string mString;
     };
   //}}}

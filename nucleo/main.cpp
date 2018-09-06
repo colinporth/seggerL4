@@ -48,9 +48,9 @@ void uiThread (void* arg) {
       int steps = 64;
       float width = 4.f;
       lcd->aEllipse (centre, cPointF(radius-width, radius), steps);
-      lcd->aRender (sRgba565 (128,128,128, 192), false);
+      lcd->aRender (sRgba (128,128,128, 192), false);
       lcd->aEllipseOutline (centre, cPointF(radius, radius), width, steps);
-      lcd->aRender (sRgba565 (180,180,0, 255), false);
+      lcd->aRender (sRgba (180,180,0, 255), false);
 
       float handWidth = radius > 60.f ? radius / 20.f : 3.f;
       float hourR = radius * 0.75f;
@@ -61,17 +61,17 @@ void uiThread (void* arg) {
 
       float secondR = radius * 0.95f;
       lcd->aPointedLine (centre, centre + cPointF (secondR * sin (secondA), secondR * cos (secondA)), handWidth);
-      lcd->aRender (sRgba565 (255,0,0, 180));
+      lcd->aRender (sRgba (255,0,0, 180));
 
       float subSecondR = radius * 0.95f;
       lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
-      lcd->aRender (sRgba565 (255,255,0, 128));
+      lcd->aRender (sRgba (255,255,0, 128));
       //}}}
       lcd->cLcd::text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
       lcd->present();
 
       if (radius < maxRadius) {
-        radius *= 1.04f;
+        radius *= 1.1f;
         if (radius > maxRadius)
           radius = maxRadius;
         lcd->change();
