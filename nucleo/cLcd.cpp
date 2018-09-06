@@ -785,12 +785,13 @@ void cLcd::info (sRgba565 colour, const std::string& str) {
 // dma2d draw
 //{{{
 void cLcd::rect (sRgba565 colour, const cRect& r) {
+// should do blending alpha version
 
   uint32_t rectRegs[4];
-  rectRegs[0] = colour.rgb565;                                                 // OCOLR
-  rectRegs[1] = uint32_t (mBuffer + r.top * getWidth() + r.left); // OMAR
-  rectRegs[2] = getWidth() - r.getWidth();                                     // OOR
-  rectRegs[3] = (r.getWidth() << 16) | r.getHeight();                          // NLR
+  rectRegs[0] = colour.rgb565;                                     // OCOLR
+  rectRegs[1] = uint32_t (mBuffer + r.top * getWidth() + r.left);  // OMAR
+  rectRegs[2] = getWidth() - r.getWidth();                         // OOR
+  rectRegs[3] = (r.getWidth() << 16) | r.getHeight();              // NLR
 
   ready();
   memcpy ((void*)(&DMA2D->OCOLR), rectRegs, 5*4);
@@ -1318,9 +1319,9 @@ void cLcd::drawInfo() {
     text (kWhite, kFooterHeight,
           dec(mNumPresents) + ":" + dec (mDrawTime) + ":" + dec (mPresentTime) + " " +
           dec (osGetCPUUsage()) + "%"
-          " 1:" + dec (getSram1FreeSize()/1000) + ":" + dec (getSram1Size()/1000) +
-          " 2:" + dec (getDtcmFreeSize()/1000) + ":" + dec (getDtcmSize()/1000) +
-          " 3:" + dec (getSramFreeSize()/1000) + ":" + dec (getSramMinFreeSize()/1000) + ":" + dec (getSramSize()/1000),
+          " s:" + dec (getSram1FreeSize()/1000) + ":" + dec (getSram1Size()/1000) +
+          " d:" + dec (getDtcmFreeSize()/1000) + ":" + dec (getDtcmSize()/1000) +
+          " p:" + dec (getSramFreeSize()/1000) + ":" + dec (getSramMinFreeSize()/1000) + ":" + dec (getSramSize()/1000),
           cRect(0, y, getWidth(), kTitleHeight+kGap));
 
     // draw log
