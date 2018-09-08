@@ -38,31 +38,68 @@ void adcInit() {
   __HAL_RCC_ADC_CONFIG (RCC_ADCCLKSOURCE_SYSCLK);
 
   ADC_ChannelConfTypeDef sConfig;
-  //{{{  x
-  sConfig.Channel = ADC_CHANNEL_7;  //  PA2 x
+  //{{{  touch
+  // yDown pullup adc input
+  //sConfig.Channel = ADC_CHANNEL_6;  //  PA1 x
+  //GPIO_InitTypeDef GPIO_InitStruct;
+  //GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+  //GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+  //GPIO_InitStruct.Pull = GPIO_PULLUP;
+  //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
+  // xLeft, yUp hiZ
+  //GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_3;
+  //GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  //GPIO_InitStruct.Pull = GPIO_NOPULL;
+  //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+  // xleft gnd
+  //GPIO_InitStruct.Pin = GPIO_PIN_4;
+  //GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  //GPIO_InitStruct.Pull = GPIO_NOPULL;
+  //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+  //HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // resetLo
+  //}}}
+  //{{{  x
+  // pa2 yUp - adc
+  sConfig.Channel = ADC_CHANNEL_7;
   GPIO_InitTypeDef GPIO_InitStruct;
   GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_2;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
+  // pa1 yDown hiZ
+  GPIO_InitStruct.Pin = GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+  // pa4 xLeft 0v
+  // pa3 xRight 3v
   GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_RESET); // resetLo
-  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_SET);   // resetHi
+  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_SET);   // resetHi
+  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // resetLo
   //}}}
   //{{{  y
-  //sConfig.Channel = ADC_CHANNEL_8;  //  PA3 y
-
+  //// xRight - adc
+  //sConfig.Channel = ADC_CHANNEL_9;  //  PA3 y
   //GPIO_InitTypeDef GPIO_InitStruct;
-  //GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_3;
-  //GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  //GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_4;
+  //GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
   //GPIO_InitStruct.Pull = GPIO_NOPULL;
   //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
+  //// xLeft hiZ
+  //GPIO_InitStruct.Pin = GPIO_PIN_3;
+  //GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  //GPIO_InitStruct.Pull = GPIO_NOPULL;
+  //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+  //// yDown 0v, yUp 3v
   //GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2;
   //GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   //GPIO_InitStruct.Pull = GPIO_NOPULL;
