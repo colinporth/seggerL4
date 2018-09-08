@@ -23,7 +23,12 @@ cRtc* rtc = nullptr;
 cTraceVec mTraceVec;
 
 ADC_HandleTypeDef AdcHandle;
-//void DMA2_Stream0_IRQHandler() { HAL_DMA_IRQHandler (AdcHandle.DMA_Handle); }
+extern "C" { void ADC1_IRQHandler() { HAL_ADC_IRQHandler (&AdcHandle); } }
+
+void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* AdcHandle) {
+  auto value = HAL_ADC_GetValue (AdcHandle);
+  mTraceVec.addSample (0, value);
+  }
 
 //{{{
 void uiThread (void* arg) {
@@ -96,7 +101,6 @@ void adcThread (void* arg) {
 // pa3  xRight
 // pa4  xLeft
 
-  //{{{  adc init
   __HAL_RCC_ADC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_ADC_CONFIG (RCC_ADCCLKSOURCE_SYSCLK);
@@ -172,49 +176,52 @@ void adcThread (void* arg) {
   //HAL_GPIO_WritePin (GPIOA, GPIO_PIN_2, GPIO_PIN_SET);   // resetHi
   //}}}
 
+  //{{{  adc config
   AdcHandle.Instance = ADC1;
-  AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV1;      // Asynchronous clock mode, input ADC clock not divided
-  AdcHandle.Init.Resolution            = ADC_RESOLUTION_12B;        // 12-bit resolution for converted data
-  AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;       // Right-alignment for converted data
-  AdcHandle.Init.ScanConvMode          = DISABLE;                   // Sequencer disabled (ADC conversion on only 1 channel: channel set on rank 1)
-  AdcHandle.Init.EOCSelection          = ADC_EOC_SINGLE_CONV;       // EOC flag picked-up to indicate conversion end
-  AdcHandle.Init.LowPowerAutoWait      = DISABLE;                   // Auto-delayed conversion feature disabled
-  AdcHandle.Init.ContinuousConvMode    = ENABLE;                    // Continuous mode disabled to have only 1 conversion at each conversion trig
-  AdcHandle.Init.NbrOfConversion       = 1;                         // Parameter discarded because sequencer is disabled
-  AdcHandle.Init.DiscontinuousConvMode = DISABLE;                   // Parameter discarded because sequencer is disabled
-  AdcHandle.Init.NbrOfDiscConversion   = 1;                         // Parameter discarded because sequencer is disabled
-  AdcHandle.Init.ExternalTrigConv      = ADC_SOFTWARE_START;        // Software start to trig the 1st conversion manually, without external event
-  AdcHandle.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE; // Parameter discarded because software trigger chosen
-  AdcHandle.Init.DMAContinuousRequests = DISABLE;                   // DMA one-shot mode selected (not applied to this example)
-  AdcHandle.Init.Overrun               = ADC_OVR_DATA_OVERWRITTEN;  // DR register is overwritten with the last conversion result in case of overrun
+  AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV1;
+  AdcHandle.Init.Resolution            = ADC_RESOLUTION_12B;
+  AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
+  AdcHandle.Init.ScanConvMode          = ENABLE;
+  AdcHandle.Init.EOCSelection          = ADC_EOC_SEQ_CONV;
+  AdcHandle.Init.LowPowerAutoWait      = DISABLE;
+  AdcHandle.Init.ContinuousConvMode    = DISABLE;
+  AdcHandle.Init.NbrOfConversion       = 1;
+  AdcHandle.Init.DiscontinuousConvMode = DISABLE;
+  AdcHandle.Init.NbrOfDiscConversion   = 1;
+  AdcHandle.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
+  AdcHandle.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  AdcHandle.Init.DMAContinuousRequests = DISABLE;
+  AdcHandle.Init.Overrun               = ADC_OVR_DATA_OVERWRITTEN;
   AdcHandle.Init.OversamplingMode      = DISABLE;
   if (HAL_ADC_Init (&AdcHandle) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
 
+  HAL_NVIC_SetPriority (ADC1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ (ADC1_IRQn);
+  //}}}
+
+//  channel config
   //sConfig.Channel = ADC_CHANNEL_VBAT;
-  //sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
   //sConfig.Channel = ADC_CHANNEL_VREFINT;
-  sConfig.Rank = 1;       // Rank of sampled channel number ADCx_CHANNEL
-  sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5; // Sampling time (number of clock cycles unit)
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;  // Single-ended input channel
-  sConfig.OffsetNumber = ADC_OFFSET_NONE; // No offset subtraction
-  sConfig.Offset = 0; // Parameter discarded because offset correction is disabled
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
+
+  sConfig.Rank = 1;
+  sConfig.Channel = ADC_CHANNEL_5;  //  PA0 5v
+  sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
+  //if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+  //  printf ("HAL_ADC_Init failed\n");
 
   if (HAL_ADCEx_Calibration_Start (&AdcHandle, ADC_SINGLE_ENDED) != HAL_OK)
     printf ("HAL_ADCEx_Calibration_Start failed\n");
 
-  if (HAL_ADC_Start (&AdcHandle) != HAL_OK)
-    printf ("HAL_ADC_Start failed\n");
-  //}}}
-
-  int convertedValue = 0;
   while (true) {
-    if (!HAL_ADC_PollForConversion (&AdcHandle, 100)) {
-      convertedValue = HAL_ADC_GetValue (&AdcHandle);
-      mTraceVec.addSample (0, convertedValue);
-      }
+    HAL_ADC_Start_IT (&AdcHandle);
     vTaskDelay (5);
     }
   //float kScale = ((3.3f * (39.f + 27.f) / 39.f) / 4096.f) * 1000;
@@ -294,13 +301,12 @@ int main() {
   lcd->init (kHello);
 
   mTraceVec.addTrace (320, 1, 1);
+  mTraceVec.addTrace (320, 1, 1);
 
   TaskHandle_t uiHandle;
   xTaskCreate ((TaskFunction_t)uiThread, "ui", 4096, 0, 4, &uiHandle);
-
   TaskHandle_t adcHandle;
   xTaskCreate ((TaskFunction_t)adcThread, "adc", 1024, 0, 3, &adcHandle);
-
   vTaskStartScheduler();
 
   return 0;
