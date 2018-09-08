@@ -1181,7 +1181,7 @@ void cLcd::aRender (const sRgba colour, bool fillNonZero) {
   if (mScanLine.getNumSpans())
     renderScanLine (&mScanLine, colour);
 
-  printf ("render cells:%d stamps:%d\n", numCells, mNumStamps);
+  //printf ("render cells:%d stamps:%d\n", numCells, mNumStamps);
   }
 //}}}
 
