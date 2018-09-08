@@ -58,6 +58,8 @@
 "Output/nucleo Debug/Obj/stm32l4xx_ll_usart.o"
 "Output/nucleo Debug/Obj/stm32l4xx_ll_utils.o"
 "Output/nucleo Debug/Obj/stm32l4xx_hal.o"
+"Output/nucleo Debug/Obj/stm32l4xx_hal_adc.o"
+"Output/nucleo Debug/Obj/stm32l4xx_hal_adc_ex.o"
 "Output/nucleo Debug/Obj/autofit.o"
 "Output/nucleo Debug/Obj/ftapi.o"
 "Output/nucleo Debug/Obj/ftbase.o"

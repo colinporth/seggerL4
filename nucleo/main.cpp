@@ -9,6 +9,7 @@
 #include "../common/stm32l4xx_nucleo_144.h"
 #include "../common/heap.h"
 #include "../common/cRtc.h"
+#include "../common/cTraceVec.h"
 
 #include "cLcd.h"
 
@@ -19,6 +20,7 @@ const string kHello = "smallLcd " + string(__TIME__) + " " + string(__DATE__);
 // vars
 cLcd* lcd = nullptr;
 cRtc* rtc = nullptr;
+cTraceVec mTraceVec;
 
 ADC_HandleTypeDef AdcHandle;
 //void DMA2_Stream0_IRQHandler() { HAL_DMA_IRQHandler (AdcHandle.DMA_Handle); }
@@ -26,27 +28,48 @@ ADC_HandleTypeDef AdcHandle;
 //{{{
 void adcInit() {
 // pa0  5v
-// pa1  y-
-// pa2  x+
-// pa3  y+
-// pa4  x-
+// pa1  yDown
+// pa2  yUp
+// pa3  xRight
+// pa4  xLeft
 
   __HAL_RCC_ADC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_ADC_CONFIG (RCC_ADCCLKSOURCE_SYSCLK);
 
+  ADC_ChannelConfTypeDef sConfig;
+  //{{{  x
+  sConfig.Channel = ADC_CHANNEL_7;  //  PA2 x
+
   GPIO_InitTypeDef GPIO_InitStruct;
-  GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_3;
+  GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_2;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_4;
+  GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_2, GPIO_PIN_RESET); // resetLo
+  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_RESET); // resetLo
   HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_SET);   // resetHi
+  //}}}
+  //{{{  y
+  //sConfig.Channel = ADC_CHANNEL_8;  //  PA3 y
+
+  //GPIO_InitTypeDef GPIO_InitStruct;
+  //GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_3;
+  //GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  //GPIO_InitStruct.Pull = GPIO_NOPULL;
+  //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+  //GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2;
+  //GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  //GPIO_InitStruct.Pull = GPIO_NOPULL;
+  //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+  //HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_RESET); // resetLo
+  //HAL_GPIO_WritePin (GPIOA, GPIO_PIN_2, GPIO_PIN_SET);   // resetHi
+  //}}}
 
   AdcHandle.Instance = ADC1;
   AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV1;      // Asynchronous clock mode, input ADC clock not divided
@@ -67,9 +90,7 @@ void adcInit() {
   if (HAL_ADC_Init (&AdcHandle) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
 
-  ADC_ChannelConfTypeDef sConfig;
   //sConfig.Channel = ADC_CHANNEL_VBAT;
-  sConfig.Channel = ADC_CHANNEL_7;
   //sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
   //sConfig.Channel = ADC_CHANNEL_VREFINT;
   sConfig.Rank = 1;       // Rank of sampled channel number ADCx_CHANNEL
@@ -106,6 +127,7 @@ void uiThread (void* arg) {
       printf ("HAL_ADC_PollForConversion failed\n");
     else {
       convertedValue = HAL_ADC_GetValue (&AdcHandle);
+    mTraceVec.addSample (0, convertedValue);
 
     //if (lcd->isChanged() || (lcd->getPresentTime() >= 1000)) {
     if (true) {
@@ -143,6 +165,8 @@ void uiThread (void* arg) {
       lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
       lcd->aRender (sRgba (255,255,0, 128));
       //}}}
+      mTraceVec.draw (lcd, 40, 400);
+
       lcd->cLcd::text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
       lcd->cLcd::text (kWhite, 26, dec(convertedValue), cRect (0, 20, 320, 46));
       lcd->present();
@@ -240,6 +264,7 @@ int main() {
   lcd->init (kHello);
 
   adcInit();
+  mTraceVec.addTrace (320, 1, 1);
 
   TaskHandle_t uiHandle;
   xTaskCreate ((TaskFunction_t)uiThread, "ui", 4096, 0, 4, &uiHandle);
