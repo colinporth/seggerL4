@@ -41,14 +41,19 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* AdcHandle) {
   uint16_t value = HAL_ADC_GetValue (AdcHandle);
 
   switch (mAdcIndex) {
-    case 0 : xValue = value; mTraceVec.addSample (0,  value); break;
-    case 1 : yValue = value; mTraceVec.addSample (0,  value); break;
-    case 2 : vRefIntValue = value; break;
-    case 3 : vBatValue = value; break;
-    case 4 : v5vValue = value; break;
+    case 0 :
+      if (mRead)
+        yValue = value;
+      else
+        xValue = value;
+      mTraceVec.addSample (0,  value);
+      break;
+    case 1 : vRefIntValue = value; break;
+    case 2 : vBatValue = value; break;
+    case 3 : v5vValue = value; break;
     }
 
-  mAdcIndex = (mAdcIndex + 1) % 5;
+  mAdcIndex = (mAdcIndex + 1) % 4;
   }
 //}}}
 
@@ -84,6 +89,9 @@ void uiThread (void* arg) {
       lcd->text (kWhite, 20, "v5v " + dec (v5vValue) + " " +
                                       dec (int (v5v),1,' ') + "." +
                                       dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 60, 320, 80));
+
+      lcd->text (kWhite, 20, "x:" + dec (xValue,4,' ') + " y:" + dec (yValue, 4, ' '), 
+                 cRect (0, 80, 320, 100));
 
       lcd->drawInfo();
       //{{{  get clock
@@ -147,12 +155,14 @@ void adcThread (void* arg) {
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_ADC_CONFIG (RCC_ADCCLKSOURCE_SYSCLK);
 
-  // pa0 - e5v - adc channel 5
   GPIO_InitTypeDef GPIO_InitStruct;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+
+  // pa0 - e5v - adc channel 5
   GPIO_InitStruct.Pin = GPIO_PIN_0;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
   //{{{  adc config
   AdcHandle.Instance = ADC1;
   AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV1;
@@ -162,7 +172,7 @@ void adcThread (void* arg) {
   AdcHandle.Init.EOCSelection          = ADC_EOC_SINGLE_CONV;
   AdcHandle.Init.LowPowerAutoWait      = DISABLE;
   AdcHandle.Init.ContinuousConvMode    = DISABLE;
-  AdcHandle.Init.NbrOfConversion       = 5;
+  AdcHandle.Init.NbrOfConversion       = 4;
   AdcHandle.Init.DiscontinuousConvMode = ENABLE;
   AdcHandle.Init.NbrOfDiscConversion   = 1;
   AdcHandle.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
@@ -181,33 +191,21 @@ void adcThread (void* arg) {
   sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
-
-  //  PA2 xRight adc channel 7
-  sConfig.Channel = ADC_CHANNEL_7;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.Offset = 0;
-  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
-    printf ("HAL_ADC_Init failed\n");
 
-  //  PA4 yUp adc channel 9
-  sConfig.Channel = ADC_CHANNEL_9;  
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
   sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
 
-  sConfig.Channel = ADC_CHANNEL_VREFINT;
+  sConfig.Channel = ADC_CHANNEL_VBAT;
   sConfig.Rank = ADC_REGULAR_RANK_3;
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
 
-  sConfig.Channel = ADC_CHANNEL_VBAT;
-  sConfig.Rank = ADC_REGULAR_RANK_4;
-  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
-    printf ("HAL_ADC_Init failed\n");
-
   // PA0 e5v
-  sConfig.Channel = ADC_CHANNEL_5;  
-  sConfig.Rank = ADC_REGULAR_RANK_5;
+  sConfig.Channel = ADC_CHANNEL_5;
+  sConfig.Rank = ADC_REGULAR_RANK_4;
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
 
@@ -215,10 +213,15 @@ void adcThread (void* arg) {
     printf ("HAL_ADCEx_Calibration_Start failed\n");
 
   while (true) {
-    if (mRead) {
-      //{{{  read x  pa4:xLeft->0v  pa3:xRight->3.3v  pa1:yDown Hiz  yUp->pa2:adc channel 6
-      GPIO_InitTypeDef GPIO_InitStruct;
-      GPIO_InitStruct.Pull = GPIO_NOPULL;
+    if (mRead == 0) {
+      //{{{  read x  pa4:xLeft->0v  pa3:xRight->3.3v  pa1:yDown hiZ  yUp->pa2:adc channel 7
+      // pa4 xLeft 0v
+      // pa3 xRight 3v
+      GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
+      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // resetLo
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_SET);   // resetHi
 
       // pa1 yDown hiZ
       GPIO_InitStruct.Pin = GPIO_PIN_1;
@@ -230,20 +233,15 @@ void adcThread (void* arg) {
       GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
       HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
-      // pa4 xLeft 0v
-      // pa3 xRight 3v
-      GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
-      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // resetLo
-      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_SET);   // resetHi
+      //  PA2 xRight adc channel 7
+      sConfig.Channel = ADC_CHANNEL_7;
+      sConfig.Rank = ADC_REGULAR_RANK_1;
+      if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+        printf ("HAL_ADC_Init failed\n");
       }
       //}}}
     else {
-      //{{{  read y  pa1:yDown->0v  pa2:yUp->3.3v  pa3:xLeft Hiz  xRight->pa4:adc channel 8
-      GPIO_InitTypeDef GPIO_InitStruct;
-      GPIO_InitStruct.Pull = GPIO_NOPULL;
-
+      //{{{  read y  pa1:yDown->0v  pa2:yUp->3.3v     pa3:xLeft hiZ  xRight->pa4:adc channel 9
       // yDown 0v, yUp 3v
       GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2;
       GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -256,10 +254,15 @@ void adcThread (void* arg) {
       GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
       HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
-      // xRight - adc
+      // xRight - adc channel 9
       GPIO_InitStruct.Pin = GPIO_PIN_4;
       GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
       HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      sConfig.Channel = ADC_CHANNEL_9;
+      sConfig.Rank = ADC_REGULAR_RANK_1;
+      if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+        printf ("HAL_ADC_Init failed\n");
       }
       //}}}
     //{{{  touch
@@ -286,7 +289,8 @@ void adcThread (void* arg) {
     //}}}
 
     HAL_ADC_Start_IT (&AdcHandle);
-    vTaskDelay (2);
+    vTaskDelay (10);
+
     mRead = (mRead + 1) % 2;
     }
   }
