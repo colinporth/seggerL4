@@ -22,13 +22,30 @@ cLcd* lcd = nullptr;
 cRtc* rtc = nullptr;
 cTraceVec mTraceVec;
 
+uint16_t mAdcIndex = 0;
+uint16_t vRefIntValueCalibrated = 0;
+uint16_t vRefIntValue = 0;
+uint16_t vBatValue = 0;
+uint16_t v5vValue = 0;
+
 ADC_HandleTypeDef AdcHandle;
 extern "C" { void ADC1_IRQHandler() { HAL_ADC_IRQHandler (&AdcHandle); } }
 
+//{{{
 void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* AdcHandle) {
-  auto value = HAL_ADC_GetValue (AdcHandle);
-  mTraceVec.addSample (0, value);
+
+  uint16_t value = HAL_ADC_GetValue (AdcHandle);
+
+  switch (mAdcIndex) {
+    case 0 : mTraceVec.addSample (0,  value); break;
+    case 1 : vRefIntValue = value; break;
+    case 2 : vBatValue = value; break;
+    case 3 : v5vValue = value; break;
+    }
+
+  mAdcIndex = (mAdcIndex + 1) % 4;
   }
+//}}}
 
 //{{{
 void uiThread (void* arg) {
@@ -46,6 +63,23 @@ void uiThread (void* arg) {
       lcd->start();
       lcd->clear (kBlack);
       lcd->setShowInfo (BSP_PB_GetState (BUTTON_KEY) == 0);
+
+      float vRef = (3.f * vRefIntValueCalibrated) / vRefIntValue;
+      lcd->text (kWhite, 20, "vRef " + dec (vRefIntValue) + " " +
+                                       dec (vRefIntValueCalibrated) + " " +
+                                       dec (int (vRef),1,' ') + "." +
+                                       dec (int (vRef * 100) % 100, 2,'0'), cRect (0, 20, 320, 40));
+
+      float vBat = vBatValue * ((vRef * 3.f) / 4096.f);
+      lcd->text (kWhite, 20, "vBat  " + dec (vBatValue) + " " +
+                                        dec (int (vBat),1,' ') + "." +
+                                        dec (int (vBat * 100) % 100, 2,'0'), cRect (0, 40, 320, 60));
+
+      float v5v = v5vValue * ((vRef * (39.f + 27.f) / 39.f) / 4096.f);
+      lcd->text (kWhite, 20, "v5v " + dec (v5vValue) + " " +
+                                      dec (int (v5v),1,' ') + "." +
+                                      dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 60, 320, 80));
+
       lcd->drawInfo();
       //{{{  get clock
       float hourA;
@@ -77,9 +111,9 @@ void uiThread (void* arg) {
       lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
       lcd->aRender (sRgba (255,255,0, 128));
       //}}}
-      mTraceVec.draw (lcd, 40, 400);
+      mTraceVec.draw (lcd, 100, 400);
 
-      lcd->cLcd::text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
+      lcd->text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
       lcd->present();
 
       if (radius < maxRadius) {
@@ -101,7 +135,10 @@ void adcThread (void* arg) {
 // pa3  xRight
 // pa4  xLeft
 
+  vRefIntValueCalibrated = *((uint16_t*)VREFINT_CAL_ADDR); // read VREFINT_CAL_ADDR memory location
+
   __HAL_RCC_ADC_CLK_ENABLE();
+
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_ADC_CONFIG (RCC_ADCCLKSOURCE_SYSCLK);
 
@@ -182,11 +219,11 @@ void adcThread (void* arg) {
   AdcHandle.Init.Resolution            = ADC_RESOLUTION_12B;
   AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
   AdcHandle.Init.ScanConvMode          = ENABLE;
-  AdcHandle.Init.EOCSelection          = ADC_EOC_SEQ_CONV;
+  AdcHandle.Init.EOCSelection          = ADC_EOC_SINGLE_CONV;
   AdcHandle.Init.LowPowerAutoWait      = DISABLE;
   AdcHandle.Init.ContinuousConvMode    = DISABLE;
-  AdcHandle.Init.NbrOfConversion       = 1;
-  AdcHandle.Init.DiscontinuousConvMode = DISABLE;
+  AdcHandle.Init.NbrOfConversion       = 4;
+  AdcHandle.Init.DiscontinuousConvMode = ENABLE;
   AdcHandle.Init.NbrOfDiscConversion   = 1;
   AdcHandle.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
   AdcHandle.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;
@@ -200,10 +237,7 @@ void adcThread (void* arg) {
   HAL_NVIC_EnableIRQ (ADC1_IRQn);
   //}}}
 
-//  channel config
-  //sConfig.Channel = ADC_CHANNEL_VBAT;
-  //sConfig.Channel = ADC_CHANNEL_VREFINT;
-  sConfig.Rank = 1;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
@@ -211,22 +245,29 @@ void adcThread (void* arg) {
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
 
-  sConfig.Rank = 1;
-  sConfig.Channel = ADC_CHANNEL_5;  //  PA0 5v
-  sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
-  //if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
-  //  printf ("HAL_ADC_Init failed\n");
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
+  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+    printf ("HAL_ADC_Init failed\n");
 
+  sConfig.Channel = ADC_CHANNEL_VBAT;
+  sConfig.Rank = ADC_REGULAR_RANK_3;
+  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+    printf ("HAL_ADC_Init failed\n");
+
+  sConfig.Channel = ADC_CHANNEL_5;  //  PA0 5v
+  sConfig.Rank = ADC_REGULAR_RANK_4;
+  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+    printf ("HAL_ADC_Init failed\n");
+
+  if (HAL_ADCEx_Calibration_Start (&AdcHandle, ADC_SINGLE_ENDED) != HAL_OK)
   if (HAL_ADCEx_Calibration_Start (&AdcHandle, ADC_SINGLE_ENDED) != HAL_OK)
     printf ("HAL_ADCEx_Calibration_Start failed\n");
 
   while (true) {
     HAL_ADC_Start_IT (&AdcHandle);
-    vTaskDelay (5);
+    vTaskDelay (1);
     }
-  //float kScale = ((3.3f * (39.f + 27.f) / 39.f) / 4096.f) * 1000;
-  //float kScale = (3.3f / 4096.f) * 1000;
-  //float kScale = 3.f * (3.3f / 4096.f) * 1000;
   }
 //}}}
 //{{{
@@ -301,12 +342,11 @@ int main() {
   lcd->init (kHello);
 
   mTraceVec.addTrace (320, 1, 1);
-  mTraceVec.addTrace (320, 1, 1);
 
   TaskHandle_t uiHandle;
   xTaskCreate ((TaskFunction_t)uiThread, "ui", 4096, 0, 4, &uiHandle);
   TaskHandle_t adcHandle;
-  xTaskCreate ((TaskFunction_t)adcThread, "adc", 1024, 0, 3, &adcHandle);
+  xTaskCreate ((TaskFunction_t)adcThread, "adc", 1024, 0, 4, &adcHandle);
   vTaskStartScheduler();
 
   return 0;
