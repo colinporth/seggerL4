@@ -23,7 +23,7 @@ cRtc* rtc = nullptr;
 cTraceVec mTraceVec;
 
 uint16_t mAdcIndex = 0;
-uint16_t mRead = 0;
+uint16_t mRead = 1;
 
 uint16_t vRefIntValueCalibrated = 0;
 uint16_t vRefIntValue = 0;
@@ -90,8 +90,8 @@ void uiThread (void* arg) {
                                       dec (int (v5v),1,' ') + "." +
                                       dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 60, 320, 80));
 
-      lcd->text (kWhite, 20, "x:" + dec (xValue,4,' ') + " y:" + dec (yValue, 4, ' '), 
-                 cRect (0, 80, 320, 100));
+      lcd->text (kWhite, 20, "x:" + dec (xValue,4,' ') + " y:" + dec (yValue, 4, ' ') + " " +dec(mRead),
+                 cRect (160, 60, 320, 80));
 
       lcd->drawInfo();
       //{{{  get clock
@@ -291,7 +291,7 @@ void adcThread (void* arg) {
     HAL_ADC_Start_IT (&AdcHandle);
     vTaskDelay (10);
 
-    mRead = (mRead + 1) % 2;
+    //mRead = (mRead + 1) % 2;
     }
   }
 //}}}
