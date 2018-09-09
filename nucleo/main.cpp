@@ -23,7 +23,7 @@ cRtc* rtc = nullptr;
 cTraceVec mTraceVec;
 
 uint16_t mAdcIndex = 0;
-uint16_t mRead = 1;
+uint16_t mReadY = 0;
 
 uint16_t vRefIntValueCalibrated = 0;
 uint16_t vRefIntValue = 0;
@@ -35,266 +35,6 @@ uint16_t yValue = 0;
 ADC_HandleTypeDef AdcHandle;
 extern "C" { void ADC1_IRQHandler() { HAL_ADC_IRQHandler (&AdcHandle); } }
 
-//{{{
-void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* AdcHandle) {
-
-  uint16_t value = HAL_ADC_GetValue (AdcHandle);
-
-  switch (mAdcIndex) {
-    case 0 :
-      if (mRead)
-        yValue = value;
-      else
-        xValue = value;
-      mTraceVec.addSample (0,  value);
-      break;
-    case 1 : vRefIntValue = value; break;
-    case 2 : vBatValue = value; break;
-    case 3 : v5vValue = value; break;
-    }
-
-  mAdcIndex = (mAdcIndex + 1) % 4;
-  }
-//}}}
-
-//{{{
-void uiThread (void* arg) {
-
-  cPointF centre = cPointF (160.f, 240.f);
-  float radius = 20.f;
-  const float maxRadius = 160.f;
-
-  lcd->tftInit();
-  lcd->display (70);
-
-  while (true) {
-    //if (lcd->isChanged() || (lcd->getPresentTime() >= 1000)) {
-    if (true) {
-      lcd->start();
-      lcd->clear (kBlack);
-      lcd->setShowInfo (BSP_PB_GetState (BUTTON_KEY) == 0);
-
-      float vRef = (3.f * vRefIntValueCalibrated) / vRefIntValue;
-      lcd->text (kWhite, 20, "vRef " + dec (vRefIntValue) + " " +
-                                       dec (vRefIntValueCalibrated) + " " +
-                                       dec (int (vRef),1,' ') + "." +
-                                       dec (int (vRef * 100) % 100, 2,'0'), cRect (0, 20, 320, 40));
-
-      float vBat = vBatValue * ((vRef * 3.f) / 4096.f);
-      lcd->text (kWhite, 20, "vBat  " + dec (vBatValue) + " " +
-                                        dec (int (vBat),1,' ') + "." +
-                                        dec (int (vBat * 100) % 100, 2,'0'), cRect (0, 40, 320, 60));
-
-      float v5v = v5vValue * ((vRef * (39.f + 27.f) / 39.f) / 4096.f);
-      lcd->text (kWhite, 20, "v5v " + dec (v5vValue) + " " +
-                                      dec (int (v5v),1,' ') + "." +
-                                      dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 60, 320, 80));
-
-      lcd->text (kWhite, 20, "x:" + dec (xValue,4,' ') + " y:" + dec (yValue, 4, ' ') + " " +dec(mRead),
-                 cRect (160, 60, 320, 80));
-
-      lcd->drawInfo();
-      //{{{  get clock
-      float hourA;
-      float minuteA;
-      float secondA;
-      float subSecondA;
-      rtc->getClockAngles (hourA, minuteA, secondA, subSecondA);
-      //}}}
-      //{{{  render clock
-      int steps = 64;
-      float width = 4.f;
-      lcd->aEllipse (centre, cPointF(radius-width, radius), steps);
-      lcd->aRender (sRgba (128,128,128, 192), false);
-      lcd->aEllipseOutline (centre, cPointF(radius, radius), width, steps);
-      lcd->aRender (sRgba (180,180,0, 255), false);
-
-      float handWidth = radius > 60.f ? radius / 20.f : 3.f;
-      float hourR = radius * 0.75f;
-      lcd->aPointedLine (centre, centre + cPointF (hourR * sin (hourA), hourR * cos (hourA)), handWidth);
-      float minuteR = radius * 0.9f;
-      lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (minuteA), minuteR * cos (minuteA)), handWidth);
-      lcd->aRender (kWhite);
-
-      float secondR = radius * 0.95f;
-      lcd->aPointedLine (centre, centre + cPointF (secondR * sin (secondA), secondR * cos (secondA)), handWidth);
-      lcd->aRender (sRgba (255,0,0, 180));
-
-      float subSecondR = radius * 0.95f;
-      lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
-      lcd->aRender (sRgba (255,255,0, 128));
-      //}}}
-      mTraceVec.draw (lcd, 100, 400);
-
-      lcd->text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
-      lcd->present();
-
-      if (radius < maxRadius) {
-        radius *= 1.1f;
-        if (radius > maxRadius)
-          radius = maxRadius;
-        lcd->change();
-        }
-      }
-    vTaskDelay (10);
-    }
-  }
-//}}}
-//{{{
-void adcThread (void* arg) {
-// pa0  5v
-// pa1  yDown
-// pa2  yUp
-// pa3  xRight
-// pa4  xLeft
-
-  vRefIntValueCalibrated = *((uint16_t*)VREFINT_CAL_ADDR); // read VREFINT_CAL_ADDR memory location
-
-  __HAL_RCC_ADC_CLK_ENABLE();
-
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_ADC_CONFIG (RCC_ADCCLKSOURCE_SYSCLK);
-
-  GPIO_InitTypeDef GPIO_InitStruct;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-
-  // pa0 - e5v - adc channel 5
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-  //{{{  adc config
-  AdcHandle.Instance = ADC1;
-  AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV1;
-  AdcHandle.Init.Resolution            = ADC_RESOLUTION_12B;
-  AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
-  AdcHandle.Init.ScanConvMode          = ENABLE;
-  AdcHandle.Init.EOCSelection          = ADC_EOC_SINGLE_CONV;
-  AdcHandle.Init.LowPowerAutoWait      = DISABLE;
-  AdcHandle.Init.ContinuousConvMode    = DISABLE;
-  AdcHandle.Init.NbrOfConversion       = 4;
-  AdcHandle.Init.DiscontinuousConvMode = ENABLE;
-  AdcHandle.Init.NbrOfDiscConversion   = 1;
-  AdcHandle.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
-  AdcHandle.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  AdcHandle.Init.DMAContinuousRequests = DISABLE;
-  AdcHandle.Init.Overrun               = ADC_OVR_DATA_OVERWRITTEN;
-  AdcHandle.Init.OversamplingMode      = DISABLE;
-  if (HAL_ADC_Init (&AdcHandle) != HAL_OK)
-    printf ("HAL_ADC_Init failed\n");
-
-  HAL_NVIC_SetPriority (ADC1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ (ADC1_IRQn);
-  //}}}
-
-  ADC_ChannelConfTypeDef sConfig;
-  sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;
-  sConfig.OffsetNumber = ADC_OFFSET_NONE;
-  sConfig.Offset = 0;
-
-  sConfig.Channel = ADC_CHANNEL_VREFINT;
-  sConfig.Rank = ADC_REGULAR_RANK_2;
-  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
-    printf ("HAL_ADC_Init failed\n");
-
-  sConfig.Channel = ADC_CHANNEL_VBAT;
-  sConfig.Rank = ADC_REGULAR_RANK_3;
-  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
-    printf ("HAL_ADC_Init failed\n");
-
-  // PA0 e5v
-  sConfig.Channel = ADC_CHANNEL_5;
-  sConfig.Rank = ADC_REGULAR_RANK_4;
-  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
-    printf ("HAL_ADC_Init failed\n");
-
-  if (HAL_ADCEx_Calibration_Start (&AdcHandle, ADC_SINGLE_ENDED) != HAL_OK)
-    printf ("HAL_ADCEx_Calibration_Start failed\n");
-
-  while (true) {
-    if (mRead == 0) {
-      //{{{  read x  pa4:xLeft->0v  pa3:xRight->3.3v  pa1:yDown hiZ  yUp->pa2:adc channel 7
-      // pa4 xLeft 0v
-      // pa3 xRight 3v
-      GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
-      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // resetLo
-      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_SET);   // resetHi
-
-      // pa1 yDown hiZ
-      GPIO_InitStruct.Pin = GPIO_PIN_1;
-      GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-      // pa2 yUp - adc
-      GPIO_InitStruct.Pin = GPIO_PIN_2;
-      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-      //  PA2 xRight adc channel 7
-      sConfig.Channel = ADC_CHANNEL_7;
-      sConfig.Rank = ADC_REGULAR_RANK_1;
-      if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
-        printf ("HAL_ADC_Init failed\n");
-      }
-      //}}}
-    else {
-      //{{{  read y  pa1:yDown->0v  pa2:yUp->3.3v     pa3:xLeft hiZ  xRight->pa4:adc channel 9
-      // yDown 0v, yUp 3v
-      GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2;
-      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_RESET); // resetLo
-      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_2, GPIO_PIN_SET);   // resetHi
-
-      // xLeft hiZ
-      GPIO_InitStruct.Pin = GPIO_PIN_3;
-      GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-      // xRight - adc channel 9
-      GPIO_InitStruct.Pin = GPIO_PIN_4;
-      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-      sConfig.Channel = ADC_CHANNEL_9;
-      sConfig.Rank = ADC_REGULAR_RANK_1;
-      if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
-        printf ("HAL_ADC_Init failed\n");
-      }
-      //}}}
-    //{{{  touch
-    // yDown pullup adc input
-    //sConfig.Channel = ADC_CHANNEL_6;  //  PA1 x
-    //GPIO_InitTypeDef GPIO_InitStruct;
-    //GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
-    //GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-    //GPIO_InitStruct.Pull = GPIO_PULLUP;
-    //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-    // xLeft, yUp hiZ
-    //GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_3;
-    //GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    //GPIO_InitStruct.Pull = GPIO_NOPULL;
-    //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-    // xleft gnd
-    //GPIO_InitStruct.Pin = GPIO_PIN_4;
-    //GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    //GPIO_InitStruct.Pull = GPIO_NOPULL;
-    //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-    //HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // resetLo
-    //}}}
-
-    HAL_ADC_Start_IT (&AdcHandle);
-    vTaskDelay (10);
-
-    //mRead = (mRead + 1) % 2;
-    }
-  }
-//}}}
 //{{{
 void clockConfig() {
 // System Clock source = PLL (MSI)
@@ -349,6 +89,296 @@ void clockConfig() {
   if (HAL_RCC_ClockConfig (&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
     while (1);
   }
+//}}}
+//{{{
+void uiThread (void* arg) {
+
+  cPointF centre = cPointF (160.f, 240.f);
+  float radius = 20.f;
+  const float maxRadius = 160.f;
+
+  lcd->tftInit();
+  lcd->display (70);
+
+  while (true) {
+    //if (lcd->isChanged() || (lcd->getPresentTime() >= 1000)) {
+    if (true) {
+      lcd->start();
+      lcd->clear (kBlack);
+      lcd->setShowInfo (BSP_PB_GetState (BUTTON_KEY) == 0);
+
+      float vRef = (3.f * vRefIntValueCalibrated) / vRefIntValue;
+      lcd->text (kWhite, 20, "vRef " + dec (vRefIntValue) + " " +
+                                       dec (vRefIntValueCalibrated) + " " +
+                                       dec (int (vRef),1,' ') + "." +
+                                       dec (int (vRef * 100) % 100, 2,'0'), cRect (0, 20, 320, 40));
+
+      float vBat = vBatValue * ((vRef * 3.f) / 4096.f);
+      lcd->text (kWhite, 20, "vBat  " + dec (vBatValue) + " " +
+                                        dec (int (vBat),1,' ') + "." +
+                                        dec (int (vBat * 100) % 100, 2,'0'), cRect (0, 40, 320, 60));
+
+      float v5v = v5vValue * ((vRef * (39.f + 27.f) / 39.f) / 4096.f);
+      lcd->text (kWhite, 20, "v5v " + dec (v5vValue) + " " +
+                                      dec (int (v5v),1,' ') + "." +
+                                      dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 60, 320, 80));
+
+      lcd->text (kWhite, 20, "x:" + dec (xValue,4,' ') + " y:" + dec (yValue, 4, ' ') + " " +dec (mReadY,1,'0'),
+                 cRect (160, 60, 320, 80));
+
+      lcd->drawInfo();
+      //{{{  get clock
+      float hourA;
+      float minuteA;
+      float secondA;
+      float subSecondA;
+      rtc->getClockAngles (hourA, minuteA, secondA, subSecondA);
+      //}}}
+      //{{{  render clock
+      int steps = 64;
+      float width = 4.f;
+      lcd->aEllipse (centre, cPointF(radius-width, radius), steps);
+      lcd->aRender (sRgba (128,128,128, 192), false);
+      lcd->aEllipseOutline (centre, cPointF(radius, radius), width, steps);
+      lcd->aRender (sRgba (180,180,0, 255), false);
+
+      float handWidth = radius > 60.f ? radius / 20.f : 3.f;
+      float hourR = radius * 0.75f;
+      lcd->aPointedLine (centre, centre + cPointF (hourR * sin (hourA), hourR * cos (hourA)), handWidth);
+      float minuteR = radius * 0.9f;
+      lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (minuteA), minuteR * cos (minuteA)), handWidth);
+      lcd->aRender (kWhite);
+
+      float secondR = radius * 0.95f;
+      lcd->aPointedLine (centre, centre + cPointF (secondR * sin (secondA), secondR * cos (secondA)), handWidth);
+      lcd->aRender (sRgba (255,0,0, 180));
+
+      float subSecondR = radius * 0.95f;
+      lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
+      lcd->aRender (sRgba (255,255,0, 128));
+      //}}}
+      mTraceVec.draw (lcd, 100, 400);
+
+      lcd->text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
+      lcd->present();
+
+      if (radius < maxRadius) {
+        radius *= 1.1f;
+        if (radius > maxRadius)
+          radius = maxRadius;
+        lcd->change();
+        }
+      }
+    vTaskDelay (10);
+    }
+  }
+//}}}
+
+//{{{
+void adcThread (void* arg) {
+// pa0  5v
+// pa1  yy-
+// pa2  y+
+// pa3  x+
+// pa4  x-
+
+  vRefIntValueCalibrated = *((uint16_t*)VREFINT_CAL_ADDR); // read VREFINT_CAL_ADDR memory location
+
+  __HAL_RCC_ADC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_ADC_CONFIG (RCC_ADCCLKSOURCE_SYSCLK);
+
+  GPIO_InitTypeDef GPIO_InitStruct;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+
+  // pa0 - e5v - adc channel 5
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+  // adc config
+  AdcHandle.Instance = ADC1;
+  AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV1;
+  AdcHandle.Init.Resolution            = ADC_RESOLUTION_12B;
+  AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
+  AdcHandle.Init.ScanConvMode          = ENABLE;
+  AdcHandle.Init.EOCSelection          = ADC_EOC_SINGLE_CONV;
+  //AdcHandle.Init.EOCSelection          = ADC_EOC_SEQ_CONV;
+  AdcHandle.Init.LowPowerAutoWait      = DISABLE;
+  AdcHandle.Init.ContinuousConvMode    = DISABLE;
+  AdcHandle.Init.NbrOfConversion       = 4;
+  AdcHandle.Init.DiscontinuousConvMode = ENABLE;
+  AdcHandle.Init.NbrOfDiscConversion   = 1;
+  AdcHandle.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
+  AdcHandle.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  AdcHandle.Init.DMAContinuousRequests = DISABLE;
+  AdcHandle.Init.Overrun               = ADC_OVR_DATA_OVERWRITTEN;
+  AdcHandle.Init.OversamplingMode      = DISABLE;
+  if (HAL_ADC_Init (&AdcHandle) != HAL_OK)
+    printf ("HAL_ADC_Init failed\n");
+
+  HAL_NVIC_SetPriority (ADC1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ (ADC1_IRQn);
+
+  ADC_ChannelConfTypeDef sConfig;
+  sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+    printf ("HAL_ADC_Init failed\n");
+
+  sConfig.Channel = ADC_CHANNEL_VBAT;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
+  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+    printf ("HAL_ADC_Init failed\n");
+
+  // pa0 e5v
+  sConfig.Channel = ADC_CHANNEL_5;
+  sConfig.Rank = ADC_REGULAR_RANK_3;
+  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+    printf ("HAL_ADC_Init failed\n");
+
+  // pa2 y+ adcChannel7
+  sConfig.Channel = ADC_CHANNEL_7;
+  sConfig.Rank = ADC_REGULAR_RANK_4;
+  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+    printf ("HAL_ADC_Init failed\n");
+
+  if (HAL_ADCEx_Calibration_Start (&AdcHandle, ADC_SINGLE_ENDED) != HAL_OK)
+    printf ("HAL_ADCEx_Calibration_Start failed\n");
+
+  while (true) {
+    if (mReadY == 0) {
+      //{{{  read x  pa4:x- > 0v  pa3:x+ > 3.3v  pa1:y- hiZ  y+ > pa2:adc channel 7
+      // pa1 y- hiZ
+      GPIO_InitStruct.Pin = GPIO_PIN_1;
+      GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      // pa2 y+ - adcChannel7
+      GPIO_InitStruct.Pin = GPIO_PIN_2;
+      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      // pa4 x- 0v,  pa3 x+ 3v
+      GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
+      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // resetLo
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_SET);   // resetHi
+
+      //  pa2 y+ adcChannel7
+      sConfig.Channel = ADC_CHANNEL_7;
+      sConfig.Rank = ADC_REGULAR_RANK_4;
+      if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+        printf ("HAL_ADC_Init failed\n");
+      }
+      //}}}
+    else {
+      //{{{  read y  pa1:y- > 0v  pa2:y+ > 3.3v     pa3:x- hiZ  x+ > pa4:adc channel 9
+      // x- hiZ
+      GPIO_InitStruct.Pin = GPIO_PIN_3;
+      GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      // x+ - adc channel 9
+      GPIO_InitStruct.Pin = GPIO_PIN_4;
+      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      // y- 0v, y+ 3v
+      GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2;
+      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_RESET); // resetLo
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_2, GPIO_PIN_SET);   // resetHi
+
+      // x+ - adc channel 9
+      sConfig.Channel = ADC_CHANNEL_9;
+      sConfig.Rank = ADC_REGULAR_RANK_4;
+      if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+        printf ("HAL_ADC_Init failed\n");
+      }
+      //}}}
+    //{{{  touch
+    // yDown pullup adc input
+    //sConfig.Channel = ADC_CHANNEL_6;  //  PA1 x
+    //GPIO_InitTypeDef GPIO_InitStruct;
+    //GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+    //GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+    //GPIO_InitStruct.Pull = GPIO_PULLUP;
+    //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+    // x-, y+ hiZ
+    //GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_3;
+    //GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    //GPIO_InitStruct.Pull = GPIO_NOPULL;
+    //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+    // x- gnd
+    //GPIO_InitStruct.Pin = GPIO_PIN_4;
+    //GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    //GPIO_InitStruct.Pull = GPIO_NOPULL;
+    //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+    //HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // resetLo
+    //}}}
+
+    HAL_ADC_Start_IT (&AdcHandle);
+    vTaskDelay (10);
+
+    mReadY = (mReadY + 1) % 2;
+    }
+  }
+//}}}
+//{{{
+void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* AdcHandle) {
+
+  uint16_t value = HAL_ADC_GetValue (AdcHandle);
+
+  switch (mAdcIndex) {
+    case 0 : vRefIntValue = value; break;
+    case 1 : vBatValue = value; break;
+    case 2 : v5vValue = value; break;
+    case 3 :
+      if (mReadY)
+        yValue = value;
+      else
+        xValue = value;
+      mTraceVec.addSample (0,  value);
+      break;
+    }
+
+  //printf ("HAL_ADC_ConvCpltCallback %d\n", __HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS));
+  mAdcIndex = __HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS) ? 0 : mAdcIndex+1;
+  }
+//}}}
+//{{{
+//void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* AdcHandle) {
+
+   //printf ("HAL_ADC_ConvCpltCallback %d\n", __HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS));
+   //if (__HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS)) {
+    //uint16_t value1 = HAL_ADC_GetValue (AdcHandle);
+    //uint16_t value2 = HAL_ADC_GetValue (AdcHandle);
+    //uint16_t value3 = HAL_ADC_GetValue (AdcHandle);
+    //uint16_t value4 = HAL_ADC_GetValue (AdcHandle);
+
+    //if (mRead)
+      //yValue = value1;
+    //else
+      //xValue = value1;
+    //mTraceVec.addSample (0,  value1);
+
+    //vRefIntValue = value2;
+    //vBatValue = value3;
+    //v5vValue = value4;
+
+    //mAdcIndex = (mAdcIndex + 1) % 4;
+    //}
+  //}
 //}}}
 
 int main() {
