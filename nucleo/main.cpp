@@ -116,18 +116,17 @@ void uiThread (void* arg) {
                                        dec (int (vRef),1,' ') + "." +
                                        dec (int (vRef * 100) % 100, 2,'0'), cRect (0, 20, 320, 40));
 
-      float vBat = vBatValue * ((vRef * 3.f) / 4096.f);
-      lcd->text (kWhite, 20, "vBat  " + dec (vBatValue) + " " +
-                                        dec (int (vBat),1,' ') + "." +
-                                        dec (int (vBat * 100) % 100, 2,'0'), cRect (0, 40, 320, 60));
+      //float vBat = vBatValue * ((vRef * 3.f) / 4096.f);
+      //lcd->text (kWhite, 20, "vBat  " + dec (vBatValue) + " " +
+      //                                  dec (int (vBat),1,' ') + "." +
+      //                                  dec (int (vBat * 100) % 100, 2,'0'), cRect (0, 40, 320, 60));
 
       float v5v = v5vValue * ((vRef * (39.f + 27.f) / 39.f) / 4096.f);
       lcd->text (kWhite, 20, "v5v " + dec (v5vValue) + " " +
                                       dec (int (v5v),1,' ') + "." +
-                                      dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 60, 320, 80));
+                                      dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 40, 320, 60));
 
-      lcd->text (kWhite, 20, "x:" + dec (xValue,4,' ') + " y:" + dec (yValue, 4, ' ') + " " +dec (mReadX,1,'0'),
-                 cRect (160, 60, 320, 80));
+      lcd->text (kWhite, 20, dec (xValue,4,' ') + ":" + dec (yValue, 4, ' '), cRect (160, 40, 320, 60));
 
       lcd->drawInfo();
       //{{{  get clock
@@ -177,7 +176,6 @@ void uiThread (void* arg) {
     }
   }
 //}}}
-
 //{{{
 void appThread (void* arg) {
 // pa0:e5v  pa1:y-  pa2:y+  pa3:x+  pa4:x-
@@ -187,17 +185,16 @@ void appThread (void* arg) {
   __HAL_RCC_ADC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_ADC_CONFIG (RCC_ADCCLKSOURCE_SYSCLK);
-  //{{{  adc config, 4 channels discontinous
+  //{{{  adc config, 3 channels discontinous
   AdcHandle.Instance = ADC1;
   AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV1;
   AdcHandle.Init.Resolution            = ADC_RESOLUTION_12B;
   AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
   AdcHandle.Init.ScanConvMode          = ENABLE;
-  AdcHandle.Init.EOCSelection          = ADC_EOC_SINGLE_CONV;
-  //AdcHandle.Init.EOCSelection          = ADC_EOC_SEQ_CONV;
+  AdcHandle.Init.EOCSelection          = ADC_EOC_SINGLE_CONV; // ADC_EOC_SEQ_CONV;
   AdcHandle.Init.LowPowerAutoWait      = DISABLE;
   AdcHandle.Init.ContinuousConvMode    = DISABLE;
-  AdcHandle.Init.NbrOfConversion       = 4;
+  AdcHandle.Init.NbrOfConversion       = 3;
   AdcHandle.Init.DiscontinuousConvMode = ENABLE;
   AdcHandle.Init.NbrOfDiscConversion   = 1;
   AdcHandle.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
@@ -224,10 +221,10 @@ void appThread (void* arg) {
     printf ("HAL_ADC_Init failed\n");
   //}}}
   //{{{  rank2 vbat
-  sConfig.Channel = ADC_CHANNEL_VBAT;
-  sConfig.Rank = ADC_REGULAR_RANK_2;
-  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
-    printf ("HAL_ADC_Init failed\n");
+  //sConfig.Channel = ADC_CHANNEL_VBAT;
+  //sConfig.Rank = ADC_REGULAR_RANK_2;
+  //if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+    //printf ("HAL_ADC_Init failed\n");
   //}}}
 
   GPIO_InitTypeDef GPIO_InitStruct;
@@ -239,7 +236,7 @@ void appThread (void* arg) {
   HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
   sConfig.Channel = ADC_CHANNEL_5;
-  sConfig.Rank = ADC_REGULAR_RANK_3;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
   //}}}
@@ -262,7 +259,7 @@ void appThread (void* arg) {
   HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_SET);
 
   sConfig.Channel = ADC_CHANNEL_7;
-  sConfig.Rank = ADC_REGULAR_RANK_4;
+  sConfig.Rank = ADC_REGULAR_RANK_3;
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
   //}}}
@@ -276,7 +273,7 @@ void appThread (void* arg) {
     HAL_ADC_Start_IT (&AdcHandle);
     while (!mConverted) {}
     if (mAdcIndex == 0)
-      vTaskDelay (2);
+      vTaskDelay (5);
     }
   }
 //}}}
@@ -290,15 +287,15 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
       vRefIntValue = value;
       break;
 
-    case 1 :
-      vBatValue = value;
-      break;
+    //case 1 :
+    //  vBatValue = value;
+    //  break;
 
-    case 2 :
+    case 1 :
       v5vValue = value;
       break;
 
-    case 3 :
+    case 2 :
       if (mReadX) {
         xValue = value;
         mTouch.x = ((4096 - xValue - 300) * 320) / (3800 - 2200);
@@ -342,7 +339,7 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
 
       ADC_ChannelConfTypeDef sConfig;
       sConfig.Channel = ADC_CHANNEL_7;
-      sConfig.Rank = ADC_REGULAR_RANK_4;
+      sConfig.Rank = ADC_REGULAR_RANK_3;
       sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
       sConfig.SingleDiff = ADC_SINGLE_ENDED;
       sConfig.OffsetNumber = ADC_OFFSET_NONE;
@@ -375,7 +372,7 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
 
       ADC_ChannelConfTypeDef sConfig;
       sConfig.Channel = ADC_CHANNEL_9;
-      sConfig.Rank = ADC_REGULAR_RANK_4;
+      sConfig.Rank = ADC_REGULAR_RANK_3;
       sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
       sConfig.SingleDiff = ADC_SINGLE_ENDED;
       sConfig.OffsetNumber = ADC_OFFSET_NONE;
