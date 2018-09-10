@@ -243,57 +243,29 @@ void appThread (void* arg) {
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
   //}}}
+  //{{{  read xValue - pa4:x- > 0v, pa3:x+ > 3.3v, pa1:y- hiZ, y+ > pa2:adcChannel7 rank4
+  // pa1 y- hiZ
+  GPIO_InitStruct.Pin = GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
-  if (mReadX) {
-    //{{{  read xValue - pa4:x- > 0v, pa3:x+ > 3.3v, pa1:y- hiZ, y+ > pa2:adcChannel7 rank4
-    // pa1 y- hiZ
-    GPIO_InitStruct.Pin = GPIO_PIN_1;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+  // pa4 x- 0v,  pa3 x+ 3v
+  GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // resetLo
+  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_SET);   // resetHi
 
-    // pa4 x- 0v,  pa3 x+ 3v
-    GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-    HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // resetLo
-    HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_SET);   // resetHi
+  // pa2 y+ - adcChannel7 rank4
+  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
-    // pa2 y+ - adcChannel7 rank4
-    GPIO_InitStruct.Pin = GPIO_PIN_2;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-    HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-    sConfig.Channel = ADC_CHANNEL_7;
-    sConfig.Rank = ADC_REGULAR_RANK_4;
-    if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
-      printf ("HAL_ADC_Init failed\n");
-    }
-    //}}}
-  else {
-    //{{{  read yValue - pa1:y- > 0v, pa2:y+ > 3.3v, pa3:x- hiZ, x+ > pa4:adcChannel9 rank4
-    // pa3:x- hiZ
-    GPIO_InitStruct.Pin = GPIO_PIN_3;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-    // pa1:y- 0v, pa2:y+ 3v
-    GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-    HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_RESET); // resetLo
-    HAL_GPIO_WritePin (GPIOA, GPIO_PIN_2, GPIO_PIN_SET);   // resetHi
-
-    // pa4:x+ - adcChannel9
-    GPIO_InitStruct.Pin = GPIO_PIN_4;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-    HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-    sConfig.Channel = ADC_CHANNEL_9;
-    sConfig.Rank = ADC_REGULAR_RANK_4;
-    if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
-      printf ("HAL_ADC_Init failed\n");
-    }
-    //}}}
+  sConfig.Channel = ADC_CHANNEL_7;
+  sConfig.Rank = ADC_REGULAR_RANK_4;
+  if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
+    printf ("HAL_ADC_Init failed\n");
+  //}}}
 
   if (HAL_ADCEx_Calibration_Start (&AdcHandle, ADC_SINGLE_ENDED) != HAL_OK)
     printf ("HAL_ADCEx_Calibration_Start failed\n");
@@ -305,28 +277,107 @@ void appThread (void* arg) {
   }
 //}}}
 //{{{
-void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* AdcHandle) {
+void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
 
-  uint16_t value = HAL_ADC_GetValue (AdcHandle);
+  uint16_t value = HAL_ADC_GetValue (adcHandle);
 
   switch (mAdcIndex) {
-    case 0 : vRefIntValue = value; break;
-    case 1 : vBatValue = value; break;
-    case 2 : v5vValue = value; break;
+    case 0 :
+      vRefIntValue = value;
+      break;
+
+    case 1 :
+      vBatValue = value;
+      break;
+
+    case 2 :
+      v5vValue = value;
+      break;
+
     case 3 :
       if (mReadX)
         xValue = value;
       else
         yValue = value;
-      mTraceVec.addSample (0,  value);
+
+      mTraceVec.addSample (0, xValue);
+      mTraceVec.addSample (1, yValue);
       break;
     }
 
   printf ("HAL_ADC_ConvCpltCallback eos:%d i:%d v:%d\n",
-          __HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS), mAdcIndex, value);
-  if (__HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS)) {
-    mAdcIndex = 0 ;
-    //mReadX = !mReadX;
+          __HAL_ADC_GET_FLAG (adcHandle, ADC_FLAG_EOS), mAdcIndex, value);
+  if (__HAL_ADC_GET_FLAG (adcHandle, ADC_FLAG_EOS)) {
+    mAdcIndex = 0;
+
+    mReadX = !mReadX;
+    if (mReadX) {
+      //{{{  read xValue - pa4:x- > 0v, pa3:x+ > 3.3v, pa1:y- hiZ, y+ > pa2:adcChannel7 rank4
+      GPIO_InitTypeDef GPIO_InitStruct;
+      GPIO_InitStruct.Pull = GPIO_NOPULL;
+
+      // pa1 y- hiZ
+      GPIO_InitStruct.Pin = GPIO_PIN_1;
+      GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      // pa4 x- 0v,  pa3 x+ 3v
+      GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
+      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // resetLo
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_SET);   // resetHi
+
+      // pa2 y+ - adcChannel7 rank4
+      GPIO_InitStruct.Pin = GPIO_PIN_2;
+      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      ADC_ChannelConfTypeDef sConfig;
+      sConfig.Channel = ADC_CHANNEL_7;
+      sConfig.Rank = ADC_REGULAR_RANK_4;
+      sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
+      sConfig.SingleDiff = ADC_SINGLE_ENDED;
+      sConfig.OffsetNumber = ADC_OFFSET_NONE;
+      sConfig.Offset = 0;
+      if (HAL_ADC_ConfigChannel (adcHandle, &sConfig) != HAL_OK)
+        printf ("HAL_ADC_Init failed\n");
+      }
+      //}}}
+    else  {
+      //{{{  read yValue - pa1:y- > 0v, pa2:y+ > 3.3v, pa3:x- hiZ, x+ > pa4:adcChannel9 rank4
+      GPIO_InitTypeDef GPIO_InitStruct;
+      GPIO_InitStruct.Pull = GPIO_NOPULL;
+
+      // pa3:x- hiZ
+      GPIO_InitStruct.Pin = GPIO_PIN_3;
+      GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      // pa1:y- 0v, pa2:y+ 3v
+      GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2;
+      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_RESET); // resetLo
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_2, GPIO_PIN_SET);   // resetHi
+
+      // pa4:x+ - adcChannel9
+      GPIO_InitStruct.Pin = GPIO_PIN_4;
+      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      ADC_ChannelConfTypeDef sConfig;
+      sConfig.Channel = ADC_CHANNEL_9;
+      sConfig.Rank = ADC_REGULAR_RANK_4;
+      sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
+      sConfig.SingleDiff = ADC_SINGLE_ENDED;
+      sConfig.OffsetNumber = ADC_OFFSET_NONE;
+      sConfig.Offset = 0;
+      if (HAL_ADC_ConfigChannel (adcHandle, &sConfig) != HAL_OK)
+        printf ("HAL_ADC_Init failed\n");
+      }
+      //}}}
+
     }
   else
     mAdcIndex++;
@@ -348,6 +399,7 @@ int main() {
   lcd = new cLcd();
   lcd->init (kHello);
 
+  mTraceVec.addTrace (320, 1, 1);
   mTraceVec.addTrace (320, 1, 1);
 
   TaskHandle_t uiHandle;
