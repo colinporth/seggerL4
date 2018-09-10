@@ -111,22 +111,19 @@ void uiThread (void* arg) {
       lcd->setShowInfo (BSP_PB_GetState (BUTTON_KEY) == 0);
 
       float vRef = (3.f * vRefIntValueCalibrated) / vRefIntValue;
+      float v5v = v5vValue * ((vRef * (39.f + 27.f) / 39.f) / 4096.f);
       lcd->text (kWhite, 20, "vRef " + dec (vRefIntValue) + " " +
-                                       dec (vRefIntValueCalibrated) + " " +
                                        dec (int (vRef),1,' ') + "." +
-                                       dec (int (vRef * 100) % 100, 2,'0'), cRect (0, 20, 320, 40));
+                                       dec (int (vRef * 100) % 100, 2,'0') + " " +
+                                       dec (v5vValue) + " " +
+                                       dec (int (v5v),1,' ') + "." +
+                                       dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 20, 320, 40));
+      lcd->text (kWhite, 20, dec (xValue,4,' ') + ":" + dec (yValue, 4, ' '), cRect (0, 40, 320, 60));
 
       //float vBat = vBatValue * ((vRef * 3.f) / 4096.f);
       //lcd->text (kWhite, 20, "vBat  " + dec (vBatValue) + " " +
       //                                  dec (int (vBat),1,' ') + "." +
       //                                  dec (int (vBat * 100) % 100, 2,'0'), cRect (0, 40, 320, 60));
-
-      float v5v = v5vValue * ((vRef * (39.f + 27.f) / 39.f) / 4096.f);
-      lcd->text (kWhite, 20, "v5v " + dec (v5vValue) + " " +
-                                      dec (int (v5v),1,' ') + "." +
-                                      dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 40, 320, 60));
-
-      lcd->text (kWhite, 20, dec (xValue,4,' ') + ":" + dec (yValue, 4, ' '), cRect (160, 40, 320, 60));
 
       lcd->drawInfo();
       //{{{  get clock
@@ -240,7 +237,7 @@ void appThread (void* arg) {
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
   //}}}
-  //{{{  read xValue - pa4:x- > 0v, pa3:x+ > 3.3v, pa1:y- hiZ, y+ > pa2:adcChannel7 rank4
+  //{{{  read xValue - pa3:x- > 0v, pa4:x+ > 3.3v, pa1:y- hiZ, y+ > pa2:adcChannel7 rank4
   // pa1:y- hiZ
   GPIO_InitStruct.Pin = GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -255,8 +252,8 @@ void appThread (void* arg) {
   GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 
   sConfig.Channel = ADC_CHANNEL_7;
   sConfig.Rank = ADC_REGULAR_RANK_3;
@@ -298,11 +295,11 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
     case 2 :
       if (mReadX) {
         xValue = value;
-        mTouch.x = ((4096 - xValue - 300) * 320) / (3800 - 2200);
+        mTouch.x = ((xValue - 2200) * 320) / (3800 - 2200);
         }
       else {
         yValue = value;
-        mTouch.y = ((yValue-350) * 480) / (3800 - 350);
+        mTouch.y = ((yValue - 350) * 480) / (3800 - 350);
         }
       break;
     }
@@ -316,7 +313,7 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
     mAdcIndex = 0;
     mReadX = !mReadX;
     if (mReadX) {
-      //{{{  read xValue - pa4:x- > 0v, pa3:x+ > 3.3v, pa1:y- hiZ, y+ > pa2:adcChannel7 rank4
+      //{{{  read xValue - pa3:x- > 0v, pa4:x+ > 3.3v, pa1:y- hiZ, y+ > pa2:adcChannel7 rank4
       GPIO_InitTypeDef GPIO_InitStruct;
       GPIO_InitStruct.Pull = GPIO_NOPULL;
 
@@ -334,8 +331,8 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
       GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
       GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
       HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_SET);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 
       ADC_ChannelConfTypeDef sConfig;
       sConfig.Channel = ADC_CHANNEL_7;
