@@ -331,8 +331,6 @@ void appThread (void* arg) {
 
     HAL_ADC_Start_IT (&AdcHandle);
     vTaskDelay (10);
-
-    mReadX = !mReadX;
     }
   }
 //}}}
@@ -345,13 +343,23 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* AdcHandle) {
     case 0 : vRefIntValue = value; break;
     case 1 : vBatValue = value; break;
     case 2 : v5vValue = value; break;
-    case 3 : xValue = value; mTraceVec.addSample (0,  value); break;
-    case 4 : yValue = value; mTraceVec.addSample (0,  value); break;
+    case 3 :
+      if (mReadX)
+        xValue = value;
+      else
+        yValue = value;
+      mTraceVec.addSample (0,  value);
+      break;
     }
 
   printf ("HAL_ADC_ConvCpltCallback eos:%d i:%d v:%d\n",
           __HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS), mAdcIndex, value);
-  mAdcIndex = __HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS) ? 0 : mAdcIndex+1;
+  if (__HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS)) {
+    mAdcIndex = 0 ;
+    //mReadX = !mReadX;
+    }
+  else
+    mAdcIndex++;
   }
 //}}}
 
