@@ -23,7 +23,7 @@ cRtc* rtc = nullptr;
 cTraceVec mTraceVec;
 
 uint16_t mAdcIndex = 0;
-uint16_t mReadY = 0;
+uint16_t mReadX = true;
 
 uint16_t vRefIntValueCalibrated = 0;
 uint16_t vRefIntValue = 0;
@@ -123,7 +123,7 @@ void uiThread (void* arg) {
                                       dec (int (v5v),1,' ') + "." +
                                       dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 60, 320, 80));
 
-      lcd->text (kWhite, 20, "x:" + dec (xValue,4,' ') + " y:" + dec (yValue, 4, ' ') + " " +dec (mReadY,1,'0'),
+      lcd->text (kWhite, 20, "x:" + dec (xValue,4,' ') + " y:" + dec (yValue, 4, ' ') + " " +dec (mReadX,1,'0'),
                  cRect (160, 60, 320, 80));
 
       lcd->drawInfo();
@@ -175,7 +175,7 @@ void uiThread (void* arg) {
 //}}}
 
 //{{{
-void adcThread (void* arg) {
+void appThread (void* arg) {
 // pa0  5v
 // pa1  yy-
 // pa2  y+
@@ -187,14 +187,6 @@ void adcThread (void* arg) {
   __HAL_RCC_ADC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_ADC_CONFIG (RCC_ADCCLKSOURCE_SYSCLK);
-
-  GPIO_InitTypeDef GPIO_InitStruct;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-
-  // pa0 - e5v - adc channel 5
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
   // adc config
   AdcHandle.Instance = ADC1;
@@ -225,35 +217,45 @@ void adcThread (void* arg) {
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
-
+  //{{{  rank1 vrefint
   sConfig.Channel = ADC_CHANNEL_VREFINT;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
-
+  //}}}
+  //{{{  rank2 vbat
   sConfig.Channel = ADC_CHANNEL_VBAT;
   sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
+  //}}}
+  //{{{  rank3 pa0 e5v
+  GPIO_InitTypeDef GPIO_InitStruct;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
 
-  // pa0 e5v
+  // pa0 - e5v - adc channel 5
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
   sConfig.Channel = ADC_CHANNEL_5;
   sConfig.Rank = ADC_REGULAR_RANK_3;
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
-
-  // pa2 y+ adcChannel7
+  //}}}
+  //{{{  rank4 pa2 y+ adcChannel7
   sConfig.Channel = ADC_CHANNEL_7;
   sConfig.Rank = ADC_REGULAR_RANK_4;
   if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
+  //}}}
 
   if (HAL_ADCEx_Calibration_Start (&AdcHandle, ADC_SINGLE_ENDED) != HAL_OK)
     printf ("HAL_ADCEx_Calibration_Start failed\n");
 
   while (true) {
-    if (mReadY == 0) {
-      //{{{  read x  pa4:x- > 0v  pa3:x+ > 3.3v  pa1:y- hiZ  y+ > pa2:adc channel 7
+    if (mReadX) {
+      //{{{  read xValue  pa4:x- > 0v  pa3:x+ > 3.3v  pa1:y- hiZ  y+ > pa2:adc channel 7
       // pa1 y- hiZ
       GPIO_InitStruct.Pin = GPIO_PIN_1;
       GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -279,7 +281,7 @@ void adcThread (void* arg) {
       }
       //}}}
     else {
-      //{{{  read y  pa1:y- > 0v  pa2:y+ > 3.3v     pa3:x- hiZ  x+ > pa4:adc channel 9
+      //{{{  read yValue  pa1:y- > 0v  pa2:y+ > 3.3v  pa3:x- hiZ  x+ > pa4:adc channel 9
       // x- hiZ
       GPIO_InitStruct.Pin = GPIO_PIN_3;
       GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -330,7 +332,7 @@ void adcThread (void* arg) {
     HAL_ADC_Start_IT (&AdcHandle);
     vTaskDelay (10);
 
-    mReadY = (mReadY + 1) % 2;
+    mReadX = !mReadX;
     }
   }
 //}}}
@@ -343,42 +345,14 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* AdcHandle) {
     case 0 : vRefIntValue = value; break;
     case 1 : vBatValue = value; break;
     case 2 : v5vValue = value; break;
-    case 3 :
-      if (mReadY)
-        yValue = value;
-      else
-        xValue = value;
-      mTraceVec.addSample (0,  value);
-      break;
+    case 3 : xValue = value; mTraceVec.addSample (0,  value); break;
+    case 4 : yValue = value; mTraceVec.addSample (0,  value); break;
     }
 
-  //printf ("HAL_ADC_ConvCpltCallback %d\n", __HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS));
+  printf ("HAL_ADC_ConvCpltCallback eos:%d i:%d v:%d\n",
+          __HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS), mAdcIndex, value);
   mAdcIndex = __HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS) ? 0 : mAdcIndex+1;
   }
-//}}}
-//{{{
-//void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* AdcHandle) {
-
-   //printf ("HAL_ADC_ConvCpltCallback %d\n", __HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS));
-   //if (__HAL_ADC_GET_FLAG (AdcHandle, ADC_FLAG_EOS)) {
-    //uint16_t value1 = HAL_ADC_GetValue (AdcHandle);
-    //uint16_t value2 = HAL_ADC_GetValue (AdcHandle);
-    //uint16_t value3 = HAL_ADC_GetValue (AdcHandle);
-    //uint16_t value4 = HAL_ADC_GetValue (AdcHandle);
-
-    //if (mRead)
-      //yValue = value1;
-    //else
-      //xValue = value1;
-    //mTraceVec.addSample (0,  value1);
-
-    //vRefIntValue = value2;
-    //vBatValue = value3;
-    //v5vValue = value4;
-
-    //mAdcIndex = (mAdcIndex + 1) % 4;
-    //}
-  //}
 //}}}
 
 int main() {
@@ -400,8 +374,8 @@ int main() {
 
   TaskHandle_t uiHandle;
   xTaskCreate ((TaskFunction_t)uiThread, "ui", 4096, 0, 4, &uiHandle);
-  TaskHandle_t adcHandle;
-  xTaskCreate ((TaskFunction_t)adcThread, "adc", 1024, 0, 4, &adcHandle);
+  TaskHandle_t appHandle;
+  xTaskCreate ((TaskFunction_t)appThread, "app", 1024, 0, 4, &appHandle);
   vTaskStartScheduler();
 
   return 0;
