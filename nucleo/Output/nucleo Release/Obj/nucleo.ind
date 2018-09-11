@@ -59,7 +59,6 @@
 "Output/nucleo Release/Obj/stm32l4xx_ll_utils.o"
 "Output/nucleo Release/Obj/stm32l4xx_hal.o"
 "Output/nucleo Release/Obj/stm32l4xx_hal_adc.o"
-"Output/nucleo Release/Obj/stm32l4xx_hal_adc_ex.o"
 "Output/nucleo Release/Obj/autofit.o"
 "Output/nucleo Release/Obj/ftapi.o"
 "Output/nucleo Release/Obj/ftbase.o"
