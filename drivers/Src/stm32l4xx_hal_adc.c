@@ -2246,7 +2246,6 @@ HAL_StatusTypeDef HAL_ADCEx_InjectedConfigChannel (ADC_HandleTypeDef* hadc, ADC_
   return tmp_hal_status;
 }
 //}}}
-
 //{{{
 /**
   * @brief  Configure the analog watchdog.

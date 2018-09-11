@@ -264,13 +264,14 @@ void uiThread (void* arg) {
       if (mPressed) {
         //{{{  touch radius and string
         radius = (centre - mTouch).magnitude();
-        //lcd->aEllipse (mTouch, cPointF (radius,radius), 32);
-        //lcd->aRender (kYellow, false);
+        lcd->aEllipse (mTouch, cPointF (16.f,16.f), 32);
+        lcd->aRender (kYellow, false);
 
         lcd->text (kWhite, 22,
                    dec (xValue,4,' ') + "," + dec (yValue, 4, ' ') + " " +
                    dec (int(mTouch.x)) + "." + dec (int(mTouch.x * 10) % 10, 1,'0') + "," +
-                   dec (int(mTouch.y)) + "." + dec (int(mTouch.y * 10) % 10, 1,'0') + " " + dec(mConversions),
+                   dec (int(mTouch.y)) + "." + dec (int(mTouch.y * 10) % 10, 1,'0') + " " +
+                   dec(mConversions / (HAL_GetTick() / 1000)),
                    cRect (0, 20, 320, 42));
         }
         //}}}
@@ -359,8 +360,9 @@ void appThread (void* arg) {
   while (true) {
     mConverted = false;
     HAL_ADC_Start_IT (&gAdcHandle);
-    while (!mConverted)
-      vTaskDelay (1);
+    while (!mConverted) {}
+    if (mReadState == ePress)
+      vTaskDelay (mPressed ? 1 : 50);
     }
   }
 //}}}
