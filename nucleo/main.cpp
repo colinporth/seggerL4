@@ -306,12 +306,9 @@ void uiThread (void* arg) {
       lcd->text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
       lcd->present();
 
-      if (radius < maxRadius) {
-        radius *= 1.1f;
-        if (radius > maxRadius)
-          radius = maxRadius;
-        lcd->change();
-        }
+      radius = mPressed ? radius * 0.9f : radius * 1.1f;
+      if (radius > maxRadius)
+        radius = maxRadius;
       }
     vTaskDelay (10);
     }
