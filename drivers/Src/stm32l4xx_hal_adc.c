@@ -168,7 +168,6 @@
                                        ADC_CFGR_EXTEN  | ADC_CFGR_EXTSEL))   /*!< ADC_CFGR fields of parameters that can be updated
                                                                                   when no regular conversion is on-going */
 
-
 /* Delay to wait before setting ADEN once ADCAL has been reset
    must be at least 4 ADC clock cycles.
    Assuming lowest ADC clock (140 KHz according to DS), this
@@ -192,6 +191,78 @@
 /*   Calculation: 653 * 256 * 256 = 42795008 CPU clock cycles max             */
 /* Unit: cycles of CPU clock.                                                 */
 #define ADC_CONVERSION_TIME_MAX_CPU_CYCLES ((uint32_t) 42795008)  /*!< ADC conversion completion time-out value */
+//}}}
+
+//{{{
+/**
+  * @brief  Conversion complete callback in non-blocking mode.
+  * @param hadc ADC handle
+  * @retval None
+  */
+__weak void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* hadc)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(hadc);
+
+  /* NOTE : This function should not be modified. When the callback is needed,
+            function HAL_ADC_ConvCpltCallback must be implemented in the user file.
+   */
+}
+//}}}
+//{{{
+/**
+  * @brief  Conversion DMA half-transfer callback in non-blocking mode.
+  * @param hadc ADC handle
+  * @retval None
+  */
+__weak void HAL_ADC_ConvHalfCpltCallback (ADC_HandleTypeDef* hadc)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(hadc);
+
+  /* NOTE : This function should not be modified. When the callback is needed,
+            function HAL_ADC_ConvHalfCpltCallback must be implemented in the user file.
+  */
+}
+//}}}
+//{{{
+/**
+  * @brief  Analog watchdog 1 callback in non-blocking mode.
+  * @param hadc ADC handle
+  * @retval None
+  */
+__weak void HAL_ADC_LevelOutOfWindowCallback (ADC_HandleTypeDef* hadc)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(hadc);
+
+  /* NOTE : This function should not be modified. When the callback is needed,
+            function HAL_ADC_LevelOutOfWindowCallback must be implemented in the user file.
+  */
+}
+//}}}
+//{{{
+/**
+  * @brief  ADC error callback in non-blocking mode
+  *         (ADC conversion with interruption or transfer by DMA).
+  * @note   In case of error due to overrun when using ADC with DMA transfer
+  *         (HAL ADC handle paramater "ErrorCode" to state "HAL_ADC_ERROR_OVR"):
+  *         - Reinitialize the DMA using function "HAL_ADC_Stop_DMA()".
+  *         - If needed, restart a new ADC conversion using function
+  *           "HAL_ADC_Start_DMA()"
+  *           (this function is also clearing overrun flag)
+  * @param hadc ADC handle
+  * @retval None
+  */
+__weak void HAL_ADC_ErrorCallback (ADC_HandleTypeDef *hadc)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(hadc);
+
+  /* NOTE : This function should not be modified. When the callback is needed,
+            function HAL_ADC_ErrorCallback must be implemented in the user file.
+  */
+}
 //}}}
 
 //{{{
@@ -231,39 +302,8 @@ HAL_StatusTypeDef HAL_ADC_Init (ADC_HandleTypeDef* hadc)
 
   /* Check ADC handle */
   if(hadc == NULL)
-  {
     return HAL_ERROR;
-  }
 
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
-  assert_param(IS_ADC_CLOCKPRESCALER(hadc->Init.ClockPrescaler));
-  assert_param(IS_ADC_RESOLUTION(hadc->Init.Resolution));
-  assert_param(IS_ADC_DFSDMCFG_MODE(hadc));
-  assert_param(IS_ADC_DATA_ALIGN(hadc->Init.DataAlign));
-  assert_param(IS_ADC_SCAN_MODE(hadc->Init.ScanConvMode));
-  assert_param(IS_FUNCTIONAL_STATE(hadc->Init.ContinuousConvMode));
-  assert_param(IS_ADC_EXTTRIG_EDGE(hadc->Init.ExternalTrigConvEdge));
-  assert_param(IS_ADC_EXTTRIG(hadc, hadc->Init.ExternalTrigConv));
-  assert_param(IS_FUNCTIONAL_STATE(hadc->Init.DMAContinuousRequests));
-  assert_param(IS_ADC_EOC_SELECTION(hadc->Init.EOCSelection));
-  assert_param(IS_ADC_OVERRUN(hadc->Init.Overrun));
-  assert_param(IS_FUNCTIONAL_STATE(hadc->Init.LowPowerAutoWait));
-  assert_param(IS_FUNCTIONAL_STATE(hadc->Init.OversamplingMode));
-
-  if(hadc->Init.ScanConvMode != ADC_SCAN_DISABLE)
-  {
-    assert_param(IS_ADC_REGULAR_NB_CONV(hadc->Init.NbrOfConversion));
-    assert_param(IS_FUNCTIONAL_STATE(hadc->Init.DiscontinuousConvMode));
-
-    if(hadc->Init.DiscontinuousConvMode == ENABLE)
-    {
-      assert_param(IS_ADC_REGULAR_DISCONT_NUMBER(hadc->Init.NbrOfDiscConversion));
-    }
-  }
-
-  /* DISCEN and CONT bits cannot be set at the same time */
-  assert_param(!((hadc->Init.DiscontinuousConvMode == ENABLE) && (hadc->Init.ContinuousConvMode == ENABLE)));
 
   /* Actions performed only if ADC is coming from state reset:                */
   /* - Initialization of ADC MSP                                              */
@@ -412,11 +452,6 @@ HAL_StatusTypeDef HAL_ADC_Init (ADC_HandleTypeDef* hadc)
 
       if (hadc->Init.OversamplingMode == ENABLE)
       {
-        assert_param(IS_ADC_OVERSAMPLING_RATIO(hadc->Init.Oversampling.Ratio));
-        assert_param(IS_ADC_RIGHT_BIT_SHIFT(hadc->Init.Oversampling.RightBitShift));
-        assert_param(IS_ADC_TRIGGERED_OVERSAMPLING_MODE(hadc->Init.Oversampling.TriggeredMode));
-        assert_param(IS_ADC_REGOVERSAMPLING_MODE(hadc->Init.Oversampling.OversamplingStopReset));
-
         /* Configuration of Oversampler:                                      */
         /*  - Oversampling Ratio                                              */
         /*  - Right bit shift                                                 */
@@ -500,12 +535,8 @@ HAL_StatusTypeDef HAL_ADC_DeInit (ADC_HandleTypeDef* hadc)
 {
   /* Check ADC handle */
   if(hadc == NULL)
-  {
     return HAL_ERROR;
-  }
 
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
 
   /* Set ADC state */
   SET_BIT(hadc->State, HAL_ADC_STATE_BUSY_INTERNAL);
@@ -528,7 +559,6 @@ HAL_StatusTypeDef HAL_ADC_DeInit (ADC_HandleTypeDef* hadc)
   /* No check on ADC_Disable() return status, if the ADC disabling process
     failed, it is up to HAL_ADC_MspDeInit() to reset the ADC IP */
   ADC_Disable(hadc);
-
 
   /* ========== Reset ADC registers ========== */
   /* Reset register IER */
@@ -629,7 +659,6 @@ HAL_StatusTypeDef HAL_ADC_DeInit (ADC_HandleTypeDef* hadc)
      ADCs are disabled.   */
   if ((ADC_IS_ENABLE(hadc) == RESET)   &&
        (ADC_ANY_OTHER_ENABLED(hadc) == RESET) )
-  {
     /* Reset configuration of ADC common register CCR:
       - clock mode: CKMODE, PRESCEN
       - multimode related parameters (when this feature is available): MDMA,
@@ -638,18 +667,14 @@ HAL_StatusTypeDef HAL_ADC_DeInit (ADC_HandleTypeDef* hadc)
         HAL_ADC_ConfigChannel() or HAL_ADCEx_InjectedConfigChannel() )
     */
     ADC_CLEAR_COMMON_CONTROL_REGISTER(hadc);
-  }
 
   /* DeInit the low level hardware.
-
      For example:
     __HAL_RCC_ADC_FORCE_RESET();
     __HAL_RCC_ADC_RELEASE_RESET();
     __HAL_RCC_ADC_CLK_DISABLE();
-
     Keep in mind that all ADCs use the same clock: disabling
     the clock will reset all ADCs.
-
   */
   HAL_ADC_MspDeInit(hadc);
 
@@ -663,18 +688,12 @@ HAL_StatusTypeDef HAL_ADC_DeInit (ADC_HandleTypeDef* hadc)
   /* Set ADC state */
   hadc->State = HAL_ADC_STATE_RESET;
 
-  /* Process unlocked */
   __HAL_UNLOCK(hadc);
-
-  /* Return function status */
   return HAL_OK;
 }
 
-/**
-  * @brief  Initialize the ADC MSP.
-  * @param hadc ADC handle
-  * @retval None
-  */
+//}}}
+//{{{
 __weak void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 {
   /* Prevent unused argument(s) compilation warning */
@@ -706,6 +725,37 @@ __weak void HAL_ADC_MspDeInit (ADC_HandleTypeDef* hadc)
 
 //{{{
 /**
+  * @brief  Get ADC regular group conversion result.
+  * @note   Reading register DR automatically clears ADC flag EOC
+  *         (ADC group regular end of unitary conversion).
+  * @note   This function does not clear ADC flag EOS
+  *         (ADC group regular end of sequence conversion).
+  *         Occurrence of flag EOS rising:
+  *          - If sequencer is composed of 1 rank, flag EOS is equivalent
+  *            to flag EOC.
+  *          - If sequencer is composed of several ranks, during the scan
+  *            sequence flag EOC only is raised, at the end of the scan sequence
+  *            both flags EOC and EOS are raised.
+  *         To clear this flag, either use function:
+  *         in programming model IT: @ref HAL_ADC_IRQHandler(), in programming
+  *         model polling: @ref HAL_ADC_PollForConversion()
+  *         or @ref __HAL_ADC_CLEAR_FLAG(&hadc, ADC_FLAG_EOS).
+  * @param hadc ADC handle
+  * @retval ADC group regular conversion data
+  */
+uint32_t HAL_ADC_GetValue (ADC_HandleTypeDef* hadc)
+{
+
+  /* Note: EOC flag is not cleared here by software because automatically     */
+  /*       cleared by hardware when reading register DR.                      */
+
+  /* Return ADC converted value */
+  return hadc->Instance->DR;
+}
+//}}}
+
+//{{{
+/**
   * @brief  Enable ADC, start conversion of regular group.
   * @note   Interruptions enabled in this function: None.
   * @note   Case of multimode enabled (when multimode feature is available):
@@ -719,8 +769,6 @@ HAL_StatusTypeDef HAL_ADC_Start (ADC_HandleTypeDef* hadc)
   HAL_StatusTypeDef tmp_hal_status = HAL_OK;
   ADC_TypeDef       *tmpADC_Master;
 
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
 
   /* Perform ADC enable and conversion start if no conversion is on going */
   if (ADC_IS_CONVERSION_ONGOING_REGULAR(hadc) == RESET)
@@ -745,22 +793,16 @@ HAL_StatusTypeDef HAL_ADC_Start (ADC_HandleTypeDef* hadc)
         - by default if ADC is Master or Independent or if multimode feature is not available
         - if multimode setting is set to independent mode (no dual regular or injected conversions are configured) */
       if (ADC_NONMULTIMODE_OR_MULTIMODEMASTER(hadc))
-      {
         CLEAR_BIT(hadc->State, HAL_ADC_STATE_MULTIMODE_SLAVE);
-      }
 
       /* Set ADC error code */
       /* Check if a conversion is on going on ADC group injected */
       if (HAL_IS_BIT_SET(hadc->State, HAL_ADC_STATE_INJ_BUSY))
-      {
         /* Reset ADC error code fields related to regular conversions only */
         CLEAR_BIT(hadc->ErrorCode, (HAL_ADC_ERROR_OVR | HAL_ADC_ERROR_DMA));
-      }
       else
-      {
         /* Reset all ADC error code fields */
         ADC_CLEAR_ERRORCODE(hadc);
-      }
 
       /* Clear ADC group regular conversion flag and overrun flag               */
       /* (To ensure of no unknown state from potential previous ADC operations) */
@@ -785,9 +827,7 @@ HAL_StatusTypeDef HAL_ADC_Start (ADC_HandleTypeDef* hadc)
            or is not Slave ADC with dual regular conversions enabled.
            Then, set HAL_ADC_STATE_INJ_BUSY bit and reset HAL_ADC_STATE_INJ_EOC bit if JAUTO is set. */
         if (READ_BIT(hadc->Instance->CFGR, ADC_CFGR_JAUTO) != RESET)
-        {
           ADC_STATE_CLR_SET(hadc->State, HAL_ADC_STATE_INJ_EOC, HAL_ADC_STATE_INJ_BUSY);
-        }
 
         /* Start ADC group regular conversion */
         LL_ADC_REG_StartConversion(hadc->Instance);
@@ -799,24 +839,16 @@ HAL_StatusTypeDef HAL_ADC_Start (ADC_HandleTypeDef* hadc)
            HAL_ADC_STATE_INJ_BUSY bit and in resetting HAL_ADC_STATE_INJ_EOC bit */
         tmpADC_Master = ADC_MASTER_REGISTER(hadc);
         if (READ_BIT(tmpADC_Master->CFGR, ADC_CFGR_JAUTO) != RESET)
-        {
           ADC_STATE_CLR_SET(hadc->State, HAL_ADC_STATE_INJ_EOC, HAL_ADC_STATE_INJ_BUSY);
-        }
 
       }
     }
     else
-    {
-      /* Process unlocked */
       __HAL_UNLOCK(hadc);
-    }
   }
   else
-  {
     tmp_hal_status = HAL_BUSY;
-  }
 
-  /* Return function status */
   return tmp_hal_status;
 }
 //}}}
@@ -830,43 +862,30 @@ HAL_StatusTypeDef HAL_ADC_Start (ADC_HandleTypeDef* hadc)
   * @param hadc ADC handle
   * @retval HAL status.
   */
-HAL_StatusTypeDef HAL_ADC_Stop (ADC_HandleTypeDef* hadc)
-{
+HAL_StatusTypeDef HAL_ADC_Stop (ADC_HandleTypeDef* hadc) {
+
   HAL_StatusTypeDef tmp_hal_status = HAL_OK;
 
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
-
-  /* Process locked */
   __HAL_LOCK(hadc);
 
   /* 1. Stop potential conversion on going, on ADC groups regular and injected */
   tmp_hal_status = ADC_ConversionStop(hadc, ADC_REGULAR_INJECTED_GROUP);
 
   /* Disable ADC peripheral if conversions are effectively stopped */
-  if (tmp_hal_status == HAL_OK)
-  {
+  if (tmp_hal_status == HAL_OK) {
     /* 2. Disable the ADC peripheral */
     tmp_hal_status = ADC_Disable(hadc);
 
     /* Check if ADC is effectively disabled */
     if (tmp_hal_status == HAL_OK)
-    {
       /* Set ADC state */
-      ADC_STATE_CLR_SET(hadc->State,
-                        HAL_ADC_STATE_REG_BUSY | HAL_ADC_STATE_INJ_BUSY,
-                        HAL_ADC_STATE_READY);
-    }
+      ADC_STATE_CLR_SET(hadc->State, HAL_ADC_STATE_REG_BUSY | HAL_ADC_STATE_INJ_BUSY, HAL_ADC_STATE_READY);
   }
 
-  /* Process unlocked */
   __HAL_UNLOCK(hadc);
-
-  /* Return function status */
   return tmp_hal_status;
 }
 //}}}
-
 //{{{
 /**
   * @brief  Wait for regular group conversion to be completed.
@@ -893,9 +912,6 @@ HAL_StatusTypeDef HAL_ADC_PollForConversion (ADC_HandleTypeDef* hadc, uint32_t T
   uint32_t tmp_cfgr = 0U;
   ADC_TypeDef *tmpADC_Master;
 
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
-
   /* If end of conversion selected to end of sequence conversions */
   if (hadc->Init.EOCSelection == ADC_EOC_SEQ_CONV)
   {
@@ -919,9 +935,7 @@ HAL_StatusTypeDef HAL_ADC_PollForConversion (ADC_HandleTypeDef* hadc, uint32_t T
         return HAL_ERROR;
       }
       else
-      {
         tmp_Flag_End = (ADC_FLAG_EOC);
-      }
     }
     else
     {
@@ -932,9 +946,7 @@ HAL_StatusTypeDef HAL_ADC_PollForConversion (ADC_HandleTypeDef* hadc, uint32_t T
         return HAL_ERROR;
       }
       else
-      {
         tmp_Flag_End = (ADC_FLAG_EOC);
-      }
     }
   }
 
@@ -975,9 +987,7 @@ HAL_StatusTypeDef HAL_ADC_PollForConversion (ADC_HandleTypeDef* hadc, uint32_t T
       CLEAR_BIT(hadc->State, HAL_ADC_STATE_REG_BUSY);
 
       if (HAL_IS_BIT_CLR(hadc->State, HAL_ADC_STATE_INJ_BUSY))
-      {
         SET_BIT(hadc->State, HAL_ADC_STATE_READY);
-      }
     }
   }
 
@@ -985,10 +995,8 @@ HAL_StatusTypeDef HAL_ADC_PollForConversion (ADC_HandleTypeDef* hadc, uint32_t T
   /* in function of multimode state (for devices with multimode               */
   /* available).                                                              */
   if (ADC_INDEPENDENT_OR_NONMULTIMODEREGULAR_SLAVE(hadc))
-  {
     /* Retrieve handle ADC CFGR register */
     tmp_cfgr = READ_REG(hadc->Instance->CFGR);
-  }
   else
   {
     /* Retrieve Master ADC CFGR register */
@@ -998,21 +1006,16 @@ HAL_StatusTypeDef HAL_ADC_PollForConversion (ADC_HandleTypeDef* hadc, uint32_t T
 
   /* Clear polled flag */
   if (tmp_Flag_End == ADC_FLAG_EOS)
-  {
     __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_EOS);
-  }
   else
   {
     /* Clear end of conversion EOC flag of regular group if low power feature */
     /* "LowPowerAutoWait " is disabled, to not interfere with this feature    */
     /* until data register is read using function HAL_ADC_GetValue().         */
     if (READ_BIT(tmp_cfgr, ADC_CFGR_AUTDLY) == RESET)
-    {
       __HAL_ADC_CLEAR_FLAG(hadc, (ADC_FLAG_EOC | ADC_FLAG_EOS));
-    }
   }
 
-  /* Return function status */
   return HAL_OK;
 }
 //}}}
@@ -1040,10 +1043,6 @@ HAL_StatusTypeDef HAL_ADC_PollForConversion (ADC_HandleTypeDef* hadc, uint32_t T
 HAL_StatusTypeDef HAL_ADC_PollForEvent (ADC_HandleTypeDef* hadc, uint32_t EventType, uint32_t Timeout)
 {
   uint32_t tickstart = 0;
-
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
-  assert_param(IS_ADC_EVENT_TYPE(EventType));
 
   /* Get tick count */
   tickstart = HAL_GetTick();
@@ -1091,43 +1090,34 @@ HAL_StatusTypeDef HAL_ADC_PollForEvent (ADC_HandleTypeDef* hadc, uint32_t EventT
   case ADC_AWD_EVENT:
     /* Set ADC state */
     SET_BIT(hadc->State, HAL_ADC_STATE_AWD1);
-
     /* Clear ADC analog watchdog flag */
     __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_AWD1);
-
     break;
 
   /* Check analog watchdog 2 flag */
   case ADC_AWD2_EVENT:
     /* Set ADC state */
     SET_BIT(hadc->State, HAL_ADC_STATE_AWD2);
-
     /* Clear ADC analog watchdog flag */
     __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_AWD2);
-
     break;
 
   /* Check analog watchdog 3 flag */
   case ADC_AWD3_EVENT:
     /* Set ADC state */
     SET_BIT(hadc->State, HAL_ADC_STATE_AWD3);
-
     /* Clear ADC analog watchdog flag */
     __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_AWD3);
-
     break;
 
   /* Injected context queue overflow event */
   case ADC_JQOVF_EVENT:
     /* Set ADC state */
     SET_BIT(hadc->State, HAL_ADC_STATE_INJ_JQOVF);
-
     /* Set ADC error code to Injected context queue overflow */
     SET_BIT(hadc->ErrorCode, HAL_ADC_ERROR_JQOVF);
-
     /* Clear ADC Injected context queue overflow flag */
     __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_JQOVF);
-
     break;
 
   /* Overrun event */
@@ -1145,20 +1135,16 @@ HAL_StatusTypeDef HAL_ADC_PollForEvent (ADC_HandleTypeDef* hadc, uint32_t EventT
       SET_BIT(hadc->ErrorCode, HAL_ADC_ERROR_OVR);
     }
     else
-    {
       /* Clear ADC Overrun flag only if Overrun is set to ADC_OVR_DATA_OVERWRITTEN
          otherwise, data register is potentially overwritten by new converted data as soon
          as OVR is cleared. */
       __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_OVR);
-    }
     break;
   }
 
-  /* Return function status */
   return HAL_OK;
 }
 //}}}
-
 //{{{
 /**
   * @brief  Enable ADC, start conversion of regular group with interruption.
@@ -1187,9 +1173,6 @@ HAL_StatusTypeDef HAL_ADC_Start_IT (ADC_HandleTypeDef* hadc)
 {
   HAL_StatusTypeDef tmp_hal_status = HAL_OK;
   ADC_TypeDef       *tmpADC_Master;
-
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
 
   /* Perform ADC enable and conversion start if no conversion is on going */
   if (ADC_IS_CONVERSION_ONGOING_REGULAR(hadc) == RESET)
@@ -1332,18 +1315,12 @@ HAL_StatusTypeDef HAL_ADC_Start_IT (ADC_HandleTypeDef* hadc)
       }
     }
     else
-    {
-      /* Process unlocked */
       __HAL_UNLOCK(hadc);
-    }
 
   }
   else
-  {
     tmp_hal_status = HAL_BUSY;
-  }
 
-  /* Return function status */
   return tmp_hal_status;
 }
 //}}}
@@ -1358,9 +1335,6 @@ HAL_StatusTypeDef HAL_ADC_Start_IT (ADC_HandleTypeDef* hadc)
 HAL_StatusTypeDef HAL_ADC_Stop_IT (ADC_HandleTypeDef* hadc)
 {
   HAL_StatusTypeDef tmp_hal_status = HAL_OK;
-
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
 
   /* Process locked */
   __HAL_LOCK(hadc);
@@ -1380,22 +1354,16 @@ HAL_StatusTypeDef HAL_ADC_Stop_IT (ADC_HandleTypeDef* hadc)
 
     /* Check if ADC is effectively disabled */
     if (tmp_hal_status == HAL_OK)
-    {
       /* Set ADC state */
       ADC_STATE_CLR_SET(hadc->State,
                         HAL_ADC_STATE_REG_BUSY | HAL_ADC_STATE_INJ_BUSY,
                         HAL_ADC_STATE_READY);
-    }
   }
 
-  /* Process unlocked */
   __HAL_UNLOCK(hadc);
-
-  /* Return function status */
   return tmp_hal_status;
 }
 //}}}
-
 //{{{
 /**
   * @brief  Enable ADC, start conversion of regular group and transfer result through DMA.
@@ -1413,9 +1381,6 @@ HAL_StatusTypeDef HAL_ADC_Stop_IT (ADC_HandleTypeDef* hadc)
 HAL_StatusTypeDef HAL_ADC_Start_DMA (ADC_HandleTypeDef* hadc, uint32_t* pData, uint32_t Length)
 {
   HAL_StatusTypeDef tmp_hal_status = HAL_OK;
-
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
 
   /* Perform ADC enable and conversion start if no conversion is on going */
   if (ADC_IS_CONVERSION_ONGOING_REGULAR(hadc) == RESET)
@@ -1537,12 +1502,9 @@ HAL_StatusTypeDef HAL_ADC_Start_DMA (ADC_HandleTypeDef* hadc, uint32_t* pData, u
   * @param hadc ADC handle
   * @retval HAL status.
   */
-HAL_StatusTypeDef HAL_ADC_Stop_DMA( ADC_HandleTypeDef* hadc)
+HAL_StatusTypeDef HAL_ADC_Stop_DMA (ADC_HandleTypeDef* hadc)
 {
   HAL_StatusTypeDef tmp_hal_status = HAL_OK;
-
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
 
   /* Process locked */
   __HAL_LOCK(hadc);
@@ -1562,10 +1524,8 @@ HAL_StatusTypeDef HAL_ADC_Stop_DMA( ADC_HandleTypeDef* hadc)
 
     /* Check if DMA channel effectively disabled */
     if (tmp_hal_status != HAL_OK)
-    {
       /* Update ADC state machine to error */
       SET_BIT(hadc->State, HAL_ADC_STATE_ERROR_DMA);
-    }
 
     /* Disable ADC overrun interrupt */
     __HAL_ADC_DISABLE_IT(hadc, ADC_IT_OVR);
@@ -1574,63 +1534,20 @@ HAL_StatusTypeDef HAL_ADC_Stop_DMA( ADC_HandleTypeDef* hadc)
     /* Update "tmp_hal_status" only if DMA channel disabling passed, to keep  */
     /* in memory a potential failing status.                                  */
     if (tmp_hal_status == HAL_OK)
-    {
       tmp_hal_status = ADC_Disable(hadc);
-    }
     else
-    {
       ADC_Disable(hadc);
-    }
 
     /* Check if ADC is effectively disabled */
     if (tmp_hal_status == HAL_OK)
-    {
       /* Set ADC state */
       ADC_STATE_CLR_SET(hadc->State,
                         HAL_ADC_STATE_REG_BUSY | HAL_ADC_STATE_INJ_BUSY,
                         HAL_ADC_STATE_READY);
-    }
-
   }
 
-  /* Process unlocked */
   __HAL_UNLOCK(hadc);
-
-  /* Return function status */
   return tmp_hal_status;
-}
-//}}}
-
-//{{{
-/**
-  * @brief  Get ADC regular group conversion result.
-  * @note   Reading register DR automatically clears ADC flag EOC
-  *         (ADC group regular end of unitary conversion).
-  * @note   This function does not clear ADC flag EOS
-  *         (ADC group regular end of sequence conversion).
-  *         Occurrence of flag EOS rising:
-  *          - If sequencer is composed of 1 rank, flag EOS is equivalent
-  *            to flag EOC.
-  *          - If sequencer is composed of several ranks, during the scan
-  *            sequence flag EOC only is raised, at the end of the scan sequence
-  *            both flags EOC and EOS are raised.
-  *         To clear this flag, either use function:
-  *         in programming model IT: @ref HAL_ADC_IRQHandler(), in programming
-  *         model polling: @ref HAL_ADC_PollForConversion()
-  *         or @ref __HAL_ADC_CLEAR_FLAG(&hadc, ADC_FLAG_EOS).
-  * @param hadc ADC handle
-  * @retval ADC group regular conversion data
-  */
-uint32_t HAL_ADC_GetValue (ADC_HandleTypeDef* hadc)
-{
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
-
-  /* Note: EOC flag is not cleared here by software because automatically     */
-  /*       cleared by hardware when reading register DR.                      */
-
-  /* Return ADC converted value */
-  return hadc->Instance->DR;
 }
 //}}}
 
@@ -1642,9 +1559,6 @@ void HAL_ADC_IRQHandler (ADC_HandleTypeDef* hadc) {
   uint32_t tmp_ier = hadc->Instance->IER;
   uint32_t tmp_cfgr = 0x0;
   ADC_TypeDef *tmpADC_Master;
-
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
-  assert_param(IS_ADC_EOC_SELECTION(hadc->Init.EOCSelection));
 
   /* ========== Check End of Sampling flag for ADC group regular ========== */
   if (((tmp_isr & ADC_FLAG_EOSMP) == ADC_FLAG_EOSMP) && ((tmp_ier & ADC_IT_EOSMP) == ADC_IT_EOSMP)) {
@@ -1890,78 +1804,6 @@ void HAL_ADC_IRQHandler (ADC_HandleTypeDef* hadc) {
 
 //{{{
 /**
-  * @brief  Conversion complete callback in non-blocking mode.
-  * @param hadc ADC handle
-  * @retval None
-  */
-__weak void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* hadc)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hadc);
-
-  /* NOTE : This function should not be modified. When the callback is needed,
-            function HAL_ADC_ConvCpltCallback must be implemented in the user file.
-   */
-}
-//}}}
-//{{{
-/**
-  * @brief  Conversion DMA half-transfer callback in non-blocking mode.
-  * @param hadc ADC handle
-  * @retval None
-  */
-__weak void HAL_ADC_ConvHalfCpltCallback (ADC_HandleTypeDef* hadc)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hadc);
-
-  /* NOTE : This function should not be modified. When the callback is needed,
-            function HAL_ADC_ConvHalfCpltCallback must be implemented in the user file.
-  */
-}
-//}}}
-//{{{
-/**
-  * @brief  Analog watchdog 1 callback in non-blocking mode.
-  * @param hadc ADC handle
-  * @retval None
-  */
-__weak void HAL_ADC_LevelOutOfWindowCallback (ADC_HandleTypeDef* hadc)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hadc);
-
-  /* NOTE : This function should not be modified. When the callback is needed,
-            function HAL_ADC_LevelOutOfWindowCallback must be implemented in the user file.
-  */
-}
-//}}}
-//{{{
-/**
-  * @brief  ADC error callback in non-blocking mode
-  *         (ADC conversion with interruption or transfer by DMA).
-  * @note   In case of error due to overrun when using ADC with DMA transfer
-  *         (HAL ADC handle paramater "ErrorCode" to state "HAL_ADC_ERROR_OVR"):
-  *         - Reinitialize the DMA using function "HAL_ADC_Stop_DMA()".
-  *         - If needed, restart a new ADC conversion using function
-  *           "HAL_ADC_Start_DMA()"
-  *           (this function is also clearing overrun flag)
-  * @param hadc ADC handle
-  * @retval None
-  */
-__weak void HAL_ADC_ErrorCallback (ADC_HandleTypeDef *hadc)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hadc);
-
-  /* NOTE : This function should not be modified. When the callback is needed,
-            function HAL_ADC_ErrorCallback must be implemented in the user file.
-  */
-}
-//}}}
-
-//{{{
-/**
   * @brief  Configure a channel to be assigned to ADC group regular.
   * @note   In case of usage of internal measurement channels:
   *         Vbat/VrefInt/TempSensor.
@@ -1984,24 +1826,6 @@ HAL_StatusTypeDef HAL_ADC_ConfigChannel (ADC_HandleTypeDef* hadc, ADC_ChannelCon
   uint32_t tmpOffsetShifted;
   __IO uint32_t wait_loop_index = 0;
 
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
-  assert_param(IS_ADC_REGULAR_RANK(sConfig->Rank));
-  assert_param(IS_ADC_SAMPLE_TIME(sConfig->SamplingTime));
-  assert_param(IS_ADC_SINGLE_DIFFERENTIAL(sConfig->SingleDiff));
-  assert_param(IS_ADC_OFFSET_NUMBER(sConfig->OffsetNumber));
-  assert_param(IS_ADC_RANGE(ADC_GET_RESOLUTION(hadc), sConfig->Offset));
-
-  /* if ROVSE is set, the value of the OFFSETy_EN bit in ADCx_OFRy register is
-     ignored (considered as reset) */
-  assert_param(!((sConfig->OffsetNumber != ADC_OFFSET_NONE) && (hadc->Init.OversamplingMode == ENABLE)));
-
-  /* Verification of channel number */
-  if (sConfig->SingleDiff != ADC_DIFFERENTIAL_ENDED)
-     assert_param(IS_ADC_CHANNEL(hadc, sConfig->Channel));
-  else
-    assert_param(IS_ADC_DIFF_CHANNEL(hadc, sConfig->Channel));
-
   /* Process locked */
   __HAL_LOCK(hadc);
 
@@ -2011,24 +1835,6 @@ HAL_StatusTypeDef HAL_ADC_ConfigChannel (ADC_HandleTypeDef* hadc, ADC_ChannelCon
   /*  - Channel number                                                        */
   /*  - Channel rank                                                          */
   if (ADC_IS_CONVERSION_ONGOING_REGULAR(hadc) == RESET) {
-    #if !defined (USE_FULL_ASSERT)
-    /* Correspondance for compatibility with legacy definition of             */
-    /* sequencer ranks in direct number format. This correspondance can       */
-    /* be done only on ranks 1 to 5 due to literal values.                    */
-    /* Note: Sequencer ranks in direct number format are no more used         */
-    /*       and are detected by activating USE_FULL_ASSERT feature.          */
-    if (sConfig->Rank <= 5U) {
-      switch (sConfig->Rank) {
-        case 2U: sConfig->Rank = ADC_REGULAR_RANK_2; break;
-        case 3U: sConfig->Rank = ADC_REGULAR_RANK_3; break;
-        case 4U: sConfig->Rank = ADC_REGULAR_RANK_4; break;
-        case 5U: sConfig->Rank = ADC_REGULAR_RANK_5; break;
-        /* case 1U */
-        default: sConfig->Rank = ADC_REGULAR_RANK_1;
-      }
-    }
-    #endif
-
     /* Set ADC group regular sequence: channel on the selected scan sequence rank */
     LL_ADC_REG_SetSequencerRanks (hadc->Instance, sConfig->Rank, sConfig->Channel);
 
@@ -2150,7 +1956,7 @@ HAL_StatusTypeDef HAL_ADC_ConfigChannel (ADC_HandleTypeDef* hadc, ADC_ChannelCon
     }
 
   /* If a conversion is on going on regular group, no update on regular */
-  /* channel could be done on neither of the channel configuration structure parameters */ 
+  /* channel could be done on neither of the channel configuration structure parameters */
   else {
     /* Update ADC state machine to error */
     SET_BIT(hadc->State, HAL_ADC_STATE_ERROR_CONFIG);
@@ -2186,23 +1992,6 @@ HAL_StatusTypeDef HAL_ADC_AnalogWDGConfig (ADC_HandleTypeDef* hadc, ADC_AnalogWD
   HAL_StatusTypeDef tmp_hal_status = HAL_OK;
   uint32_t tmpAWDHighThresholdShifted = 0U;
   uint32_t tmpAWDLowThresholdShifted = 0U;
-
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
-  assert_param(IS_ADC_ANALOG_WATCHDOG_NUMBER(AnalogWDGConfig->WatchdogNumber));
-  assert_param(IS_ADC_ANALOG_WATCHDOG_MODE(AnalogWDGConfig->WatchdogMode));
-  assert_param(IS_FUNCTIONAL_STATE(AnalogWDGConfig->ITMode));
-
-  if((AnalogWDGConfig->WatchdogMode == ADC_ANALOGWATCHDOG_SINGLE_REG)     ||
-     (AnalogWDGConfig->WatchdogMode == ADC_ANALOGWATCHDOG_SINGLE_INJEC)   ||
-     (AnalogWDGConfig->WatchdogMode == ADC_ANALOGWATCHDOG_SINGLE_REGINJEC)  )
-  {
-    assert_param(IS_ADC_CHANNEL(hadc, AnalogWDGConfig->Channel));
-  }
-
-  /* Verify if threshold is within the selected ADC resolution */
-  assert_param(IS_ADC_RANGE(ADC_GET_RESOLUTION(hadc), AnalogWDGConfig->HighThreshold));
-  assert_param(IS_ADC_RANGE(ADC_GET_RESOLUTION(hadc), AnalogWDGConfig->LowThreshold));
 
   /* Process locked */
   __HAL_LOCK(hadc);
@@ -2395,9 +2184,6 @@ HAL_StatusTypeDef HAL_ADC_AnalogWDGConfig (ADC_HandleTypeDef* hadc, ADC_AnalogWD
   */
 uint32_t HAL_ADC_GetState (ADC_HandleTypeDef* hadc)
 {
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
-
   /* Return ADC handle state */
   return hadc->State;
 }
@@ -2408,11 +2194,8 @@ uint32_t HAL_ADC_GetState (ADC_HandleTypeDef* hadc)
   * @param hadc ADC handle
   * @retval ADC error code (bitfield on 32 bits)
   */
-uint32_t HAL_ADC_GetError (ADC_HandleTypeDef *hadc)
+uint32_t HAL_ADC_GetError (ADC_HandleTypeDef* hadc)
 {
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
-
   return hadc->ErrorCode;
 }
 //}}}
@@ -2433,10 +2216,6 @@ HAL_StatusTypeDef ADC_ConversionStop (ADC_HandleTypeDef* hadc, uint32_t Conversi
   uint32_t tmp_ADC_CR_ADSTART_JADSTART = 0;
   uint32_t tickstart = 0;
   uint32_t Conversion_Timeout_CPU_cycles = 0;
-
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(hadc->Instance));
-  assert_param(IS_ADC_CONVERSION_GROUP(ConversionGroup));
 
   /* Verification if ADC is not already stopped (on regular and injected      */
   /* groups) to bypass this function if not needed.                           */
@@ -2683,7 +2462,7 @@ HAL_StatusTypeDef ADC_Disable (ADC_HandleTypeDef* hadc)
   * @param hdma pointer to DMA handle.
   * @retval None
   */
-void ADC_DMAConvCplt (DMA_HandleTypeDef *hdma)
+void ADC_DMAConvCplt (DMA_HandleTypeDef* hdma)
 {
   /* Retrieve ADC handle corresponding to current DMA handle */
   ADC_HandleTypeDef* hadc = ( ADC_HandleTypeDef* )((DMA_HandleTypeDef* )hdma)->Parent;
@@ -2754,7 +2533,7 @@ void ADC_DMAConvCplt (DMA_HandleTypeDef *hdma)
   * @param hdma pointer to DMA handle.
   * @retval None
   */
-void ADC_DMAHalfConvCplt (DMA_HandleTypeDef *hdma)
+void ADC_DMAHalfConvCplt (DMA_HandleTypeDef* hdma)
 {
   /* Retrieve ADC handle corresponding to current DMA handle */
   ADC_HandleTypeDef* hadc = ( ADC_HandleTypeDef* )((DMA_HandleTypeDef* )hdma)->Parent;
@@ -2769,7 +2548,7 @@ void ADC_DMAHalfConvCplt (DMA_HandleTypeDef *hdma)
   * @param hdma pointer to DMA handle.
   * @retval None
   */
-void ADC_DMAError (DMA_HandleTypeDef *hdma)
+void ADC_DMAError (DMA_HandleTypeDef* hdma)
 {
   /* Retrieve ADC handle corresponding to current DMA handle */
   ADC_HandleTypeDef* hadc = ( ADC_HandleTypeDef* )((DMA_HandleTypeDef* )hdma)->Parent;

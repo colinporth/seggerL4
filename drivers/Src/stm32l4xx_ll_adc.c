@@ -1,51 +1,7 @@
 //{{{
-/**
-  ******************************************************************************
-  * @file    stm32l4xx_ll_adc.c
-  * @author  MCD Application Team
-  * @brief   ADC LL module driver
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
-  *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  *
-  ******************************************************************************
-  */
-//}}}
-#if defined(USE_FULL_LL_DRIVER)
-
-//{{{
 #include "stm32l4xx_ll_adc.h"
 #include "stm32l4xx_ll_bus.h"
 //}}}
-
-#ifdef  USE_FULL_ASSERT
-  #include "stm32_assert.h"
-#else
-  #define assert_param(expr) ((void)0U)
-#endif
 
 //{{{  defines
 /* Definitions of ADC hardware constraints delays */
@@ -288,9 +244,6 @@
   */
 ErrorStatus LL_ADC_CommonDeInit(ADC_Common_TypeDef *ADCxy_COMMON)
 {
-  /* Check the parameters */
-  assert_param(IS_ADC_COMMON_INSTANCE(ADCxy_COMMON));
-
   /* Force reset of ADC clock (core clock) */
   LL_AHB2_GRP1_ForceReset(LL_AHB2_GRP1_PERIPH_ADC);
 
@@ -319,19 +272,6 @@ ErrorStatus LL_ADC_CommonDeInit(ADC_Common_TypeDef *ADCxy_COMMON)
 ErrorStatus LL_ADC_CommonInit(ADC_Common_TypeDef *ADCxy_COMMON, LL_ADC_CommonInitTypeDef *ADC_CommonInitStruct)
 {
   ErrorStatus status = SUCCESS;
-
-  /* Check the parameters */
-  assert_param(IS_ADC_COMMON_INSTANCE(ADCxy_COMMON));
-  assert_param(IS_LL_ADC_COMMON_CLOCK(ADC_CommonInitStruct->CommonClock));
-
-#if defined(ADC_MULTIMODE_SUPPORT)
-  assert_param(IS_LL_ADC_MULTI_MODE(ADC_CommonInitStruct->Multimode));
-  if(ADC_CommonInitStruct->Multimode != LL_ADC_MULTI_INDEPENDENT)
-  {
-    assert_param(IS_LL_ADC_MULTI_DMA_TRANSFER(ADC_CommonInitStruct->MultiDMATransfer));
-    assert_param(IS_LL_ADC_MULTI_TWOSMP_DELAY(ADC_CommonInitStruct->MultiTwoSamplingDelay));
-  }
-#endif /* ADC_MULTIMODE_SUPPORT */
 
   /* Note: Hardware constraint (refer to description of functions             */
   /*       "LL_ADC_SetCommonXXX()" and "LL_ADC_SetMultiXXX()"):               */
@@ -440,9 +380,6 @@ ErrorStatus LL_ADC_DeInit(ADC_TypeDef *ADCx)
   ErrorStatus status = SUCCESS;
 
   __IO uint32_t timeout_cpu_cycles = 0U;
-
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(ADCx));
 
   /* Disable ADC instance if not already disabled.                            */
   if(LL_ADC_IsEnabled(ADCx) == 1U)
@@ -709,13 +646,6 @@ ErrorStatus LL_ADC_Init(ADC_TypeDef *ADCx, LL_ADC_InitTypeDef *ADC_InitStruct)
 {
   ErrorStatus status = SUCCESS;
 
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(ADCx));
-
-  assert_param(IS_LL_ADC_RESOLUTION(ADC_InitStruct->Resolution));
-  assert_param(IS_LL_ADC_DATA_ALIGN(ADC_InitStruct->DataAlignment));
-  assert_param(IS_LL_ADC_LOW_POWER(ADC_InitStruct->LowPowerMode));
-
   /* Note: Hardware constraint (refer to description of this function):       */
   /*       ADC instance must be disabled.                                     */
   if(LL_ADC_IsEnabled(ADCx) == 0U)
@@ -799,18 +729,6 @@ void LL_ADC_StructInit(LL_ADC_InitTypeDef *ADC_InitStruct)
 ErrorStatus LL_ADC_REG_Init(ADC_TypeDef *ADCx, LL_ADC_REG_InitTypeDef *ADC_REG_InitStruct)
 {
   ErrorStatus status = SUCCESS;
-
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(ADCx));
-  assert_param(IS_LL_ADC_REG_TRIG_SOURCE(ADC_REG_InitStruct->TriggerSource));
-  assert_param(IS_LL_ADC_REG_SEQ_SCAN_LENGTH(ADC_REG_InitStruct->SequencerLength));
-  if(ADC_REG_InitStruct->SequencerLength != LL_ADC_REG_SEQ_SCAN_DISABLE)
-  {
-    assert_param(IS_LL_ADC_REG_SEQ_SCAN_DISCONT_MODE(ADC_REG_InitStruct->SequencerDiscont));
-  }
-  assert_param(IS_LL_ADC_REG_CONTINUOUS_MODE(ADC_REG_InitStruct->ContinuousMode));
-  assert_param(IS_LL_ADC_REG_DMA_TRANSFER(ADC_REG_InitStruct->DMATransfer));
-  assert_param(IS_LL_ADC_REG_OVR_DATA_BEHAVIOR(ADC_REG_InitStruct->Overrun));
 
   /* Note: Hardware constraint (refer to description of this function):       */
   /*       ADC instance must be disabled.                                     */
@@ -937,16 +855,6 @@ ErrorStatus LL_ADC_INJ_Init(ADC_TypeDef *ADCx, LL_ADC_INJ_InitTypeDef *ADC_INJ_I
 {
   ErrorStatus status = SUCCESS;
 
-  /* Check the parameters */
-  assert_param(IS_ADC_ALL_INSTANCE(ADCx));
-  assert_param(IS_LL_ADC_INJ_TRIG_SOURCE(ADC_INJ_InitStruct->TriggerSource));
-  assert_param(IS_LL_ADC_INJ_SEQ_SCAN_LENGTH(ADC_INJ_InitStruct->SequencerLength));
-  if(ADC_INJ_InitStruct->SequencerLength != LL_ADC_INJ_SEQ_SCAN_DISABLE)
-  {
-    assert_param(IS_LL_ADC_INJ_SEQ_SCAN_DISCONT_MODE(ADC_INJ_InitStruct->SequencerDiscont));
-  }
-  assert_param(IS_LL_ADC_INJ_TRIG_AUTO(ADC_INJ_InitStruct->TrigAuto));
-
   /* Note: Hardware constraint (refer to description of this function):       */
   /*       ADC instance must be disabled.                                     */
   if(LL_ADC_IsEnabled(ADCx) == 0U)
@@ -1016,5 +924,3 @@ void LL_ADC_INJ_StructInit(LL_ADC_INJ_InitTypeDef *ADC_INJ_InitStruct)
   ADC_INJ_InitStruct->TrigAuto         = LL_ADC_INJ_TRIG_INDEPENDENT;
 }
 //}}}
-
-#endif /* USE_FULL_LL_DRIVER */
