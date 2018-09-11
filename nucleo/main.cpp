@@ -260,6 +260,28 @@ void uiThread (void* arg) {
       //                                 dec (int (v5v),1,' ') + "." +
       //                                 dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 20, 320, 40));
       lcd->drawInfo();
+
+      if (mPressed) {
+        //{{{  touch radius and string
+        radius = (centre - mTouch).magnitude();
+        //lcd->aEllipse (mTouch, cPointF (radius,radius), 32);
+        //lcd->aRender (kYellow, false);
+
+        lcd->text (kWhite, 22,
+                   dec (xValue,4,' ') + "," + dec (yValue, 4, ' ') + " " +
+                   dec (int(mTouch.x)) + "." + dec (int(mTouch.x * 10) % 10, 1,'0') + "," +
+                   dec (int(mTouch.y)) + "." + dec (int(mTouch.y * 10) % 10, 1,'0') + " " + dec(mConversions),
+                   cRect (0, 20, 320, 42));
+        }
+        //}}}
+      else {
+        //{{{  anim radius
+        radius *= 1.1f;
+        if (radius > maxRadius)
+          radius = maxRadius;
+        }
+        //}}}
+
       //{{{  get clock
       float hourA;
       float minuteA;
@@ -290,25 +312,8 @@ void uiThread (void* arg) {
       lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
       lcd->aRender (sRgba (255,255,0, 128));
       //}}}
-
-      if (mPressed) {
-        lcd->text (kWhite, 20,
-                   dec (xValue,4,' ') + "," + dec (yValue, 4, ' ') + " " +
-                   dec (int(mTouch.x)) + "." + dec (int(mTouch.x * 10) % 10, 1,'0') + "," +
-                   dec (int(mTouch.y)) + "." + dec (int(mTouch.y * 10) % 10, 1,'0') + " " +
-                   dec(mConversions),
-                   cRect (0, 40, 320, 60));
-        int steps = 32;
-        lcd->aEllipse (mTouch, cPointF (16.f, 16.f), steps);
-        lcd->aRender (kGreen, false);
-        }
-
       lcd->text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
       lcd->present();
-
-      radius = mPressed ? radius * 0.9f : radius * 1.1f;
-      if (radius > maxRadius)
-        radius = maxRadius;
       }
     vTaskDelay (10);
     }
