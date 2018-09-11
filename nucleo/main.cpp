@@ -18,12 +18,30 @@ const string kHello = "smallLcd " + string(__TIME__) + " " + string(__DATE__);
 //{{{
 class cFilter {
 public:
-  uint16_t getMedianValue() {
+  //{{{
+  uint16_t getMedianValue (uint16_t value) {
+
+    addValue (value);
     memcpy (mSorted, mValues, kMaxIndex * 2);
     return quickSelect (0, mMaxIndex-1, mMaxIndex/2);
     }
+  //}}}
+  //{{{
+  uint16_t getAverageValue (uint16_t value) {
 
-  uint16_t getAverageMedianValue() {
+    addValue (value);
+
+    uint32_t sum = 0;
+    for (int i = 0; i < mMaxIndex; i++)
+      sum += mValues[i];
+    return sum / mMaxIndex;
+    }
+  //}}}
+  //{{{
+  uint16_t getAverageMedianValue (uint16_t value) {
+
+    addValue (value);
+
     memcpy (mSorted, mValues, kMaxIndex * 2);
     uint16_t median =  quickSelect (0, mMaxIndex-1, mMaxIndex/2);
     uint16_t medianBefore = mMaxIndex > 5 ? quickSelect (0, mMaxIndex-1, (mMaxIndex/2) -1) : median;
@@ -31,20 +49,7 @@ public:
 
     return (median + medianBefore + medianAfter) / 3;
     }
-
-  uint16_t getAverageValue() {
-    uint32_t sum = 0;
-    for (int i = 0; i < mMaxIndex; i++)
-      sum += mValues[i];
-    return sum / mMaxIndex;
-    }
-
-  void addValue (uint16_t value) {
-    mValues[mCurIndex] = value;
-    mCurIndex = (mCurIndex + 1) % kMaxIndex;
-    if (mMaxIndex < kMaxIndex)
-      mMaxIndex++;
-    }
+  //}}}
 
   //{{{
   void clear() {
@@ -56,6 +61,14 @@ public:
 private:
   static const int kMaxIndex = 9;
 
+  //{{{
+  void addValue (uint16_t value) {
+    mValues[mCurIndex] = value;
+    mCurIndex = (mCurIndex + 1) % kMaxIndex;
+    if (mMaxIndex < kMaxIndex)
+      mMaxIndex++;
+    }
+  //}}}
   //{{{
   uint8_t partition (uint8_t p, uint8_t r) {
 
@@ -419,9 +432,8 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
 
     case eReadX :
       //{{{  read x, select readY
-      xFilter.addValue (value);
-      xValue = xFilter.getAverageMedianValue();
-      mTouch.x = ((xValue - 300) * 320) / float(3700 - 300);
+      xValue = xFilter.getAverageMedianValue (value);
+      mTouch.x = ((xValue - 450) * 320) / float(3700 - 450);
 
       // pa4:x+ > adcChannel9 rank1 - select yValue
       GPIO_InitStruct.Pin = GPIO_PIN_4;
@@ -450,9 +462,8 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
 
     case eReadY:
       //{{{  read Y, select press
-      yFilter.addValue (value);
-      yValue = yFilter.getAverageMedianValue();
-      mTouch.y = ((yValue - 350) * 480) / float(3800 - 350);
+      yValue = yFilter.getAverageMedianValue (value);
+      mTouch.y = ((yValue - 450) * 480) / float(3800 - 450);
       mPressed = true;
 
       // pa1:y- - adcChannel6 rank1
