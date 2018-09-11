@@ -233,16 +233,12 @@ void appThread (void* arg) {
 
   mReadState = ePress;
 
-  GPIO_InitTypeDef GPIO_InitStruct;
-
+  // look for press
   // pa2:y+ hiZ
+  GPIO_InitTypeDef GPIO_InitStruct;
   GPIO_InitStruct.Pin = GPIO_PIN_2;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-  //GPIO_InitStruct.Pin = GPIO_PIN_2;
-  //GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-  //HAL_GPIO_WritePin (GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
 
   //  pa3:x+ > 0v, pa4:x- > 0v
   GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
@@ -350,34 +346,34 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
         printf ("HAL_ADC_Init failed\n");
       break;
     case eReadY:
-      //{{{  read y, select x
+      // read Y select press
       yValue = value;
       mTouch.y = ((yValue - 350) * 480) / (3800 - 350);
 
-      // pa2:y+ > adcChannel7 - select xValue
+      // pa2:y+ hiZ
       GPIO_InitStruct.Pin = GPIO_PIN_2;
-      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-      sConfig.Channel = ADC_CHANNEL_7;
-
-      // pa1:y- > hiZ
-      GPIO_InitStruct.Pin = GPIO_PIN_1;
       GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
       HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
-      // pa4:x- > 0v, pa3:x+ > 3v
+      //  pa3:x+ > 0v, pa4:x- > 0v
       GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
       GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
       HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3 | GPIO_PIN_4, GPIO_PIN_RESET);
 
-      mReadState = eReadX;
-      //}}}
-      if (HAL_ADC_ConfigChannel (adcHandle, &sConfig) != HAL_OK)
+      // pa1:y- - adcChannel6 rank1
+      GPIO_InitStruct.Pin = GPIO_PIN_1;
+      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+      GPIO_InitStruct.Pull = GPIO_PULLUP;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      sConfig.Channel = ADC_CHANNEL_6;
+      if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
         printf ("HAL_ADC_Init failed\n");
+
+      mReadState = ePress;
       break;
-    }
+      }
 
   mConversions++;
   mConverted = true;
