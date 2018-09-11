@@ -24,6 +24,7 @@ uint16_t vRefIntValueCalibrated = 0;
 
 volatile bool mReadX = true;
 volatile bool mConverted = false;
+volatile uint32_t mConversions = 0;
 volatile uint16_t vRefIntValue = 0;
 volatile uint16_t vBatValue = 0;
 volatile uint16_t v5vValue = 0;
@@ -119,7 +120,9 @@ void uiThread (void* arg) {
       //                                 dec (v5vValue) + " " +
       //                                 dec (int (v5v),1,' ') + "." +
       //                                 dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 20, 320, 40));
-      lcd->text (kWhite, 20, dec (xValue,4,' ') + ":" + dec (yValue, 4, ' '), cRect (0, 40, 320, 60));
+      lcd->text (kWhite, 20, 
+                 dec (xValue,4,' ') + ":" + dec (yValue, 4, ' ') + " " + dec(mConversions),
+                 cRect (0, 40, 320, 60));
 
 
       lcd->drawInfo();
@@ -336,6 +339,7 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
     printf ("HAL_ADC_Init failed\n");
 
   mReadX = !mReadX;
+  mConversions++;
 
   mConverted = true;
   }

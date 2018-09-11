@@ -17,7 +17,6 @@
   (+) ADC input range: from Vref- (connected to Vssa) to Vref+ (connected to
       Vdda or to an external voltage reference).
 
-
     (#) Enable the ADC interface
         (++) As prerequisite, ADC clock must be configured at RCC top level.
 
@@ -193,77 +192,12 @@
 #define ADC_CONVERSION_TIME_MAX_CPU_CYCLES ((uint32_t) 42795008)  /*!< ADC conversion completion time-out value */
 //}}}
 
-//{{{
-/**
-  * @brief  Conversion complete callback in non-blocking mode.
-  * @param hadc ADC handle
-  * @retval None
-  */
-__weak void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* hadc)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hadc);
-
-  /* NOTE : This function should not be modified. When the callback is needed,
-            function HAL_ADC_ConvCpltCallback must be implemented in the user file.
-   */
-}
-//}}}
-//{{{
-/**
-  * @brief  Conversion DMA half-transfer callback in non-blocking mode.
-  * @param hadc ADC handle
-  * @retval None
-  */
-__weak void HAL_ADC_ConvHalfCpltCallback (ADC_HandleTypeDef* hadc)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hadc);
-
-  /* NOTE : This function should not be modified. When the callback is needed,
-            function HAL_ADC_ConvHalfCpltCallback must be implemented in the user file.
-  */
-}
-//}}}
-//{{{
-/**
-  * @brief  Analog watchdog 1 callback in non-blocking mode.
-  * @param hadc ADC handle
-  * @retval None
-  */
-__weak void HAL_ADC_LevelOutOfWindowCallback (ADC_HandleTypeDef* hadc)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hadc);
-
-  /* NOTE : This function should not be modified. When the callback is needed,
-            function HAL_ADC_LevelOutOfWindowCallback must be implemented in the user file.
-  */
-}
-//}}}
-//{{{
-/**
-  * @brief  ADC error callback in non-blocking mode
-  *         (ADC conversion with interruption or transfer by DMA).
-  * @note   In case of error due to overrun when using ADC with DMA transfer
-  *         (HAL ADC handle paramater "ErrorCode" to state "HAL_ADC_ERROR_OVR"):
-  *         - Reinitialize the DMA using function "HAL_ADC_Stop_DMA()".
-  *         - If needed, restart a new ADC conversion using function
-  *           "HAL_ADC_Start_DMA()"
-  *           (this function is also clearing overrun flag)
-  * @param hadc ADC handle
-  * @retval None
-  */
-__weak void HAL_ADC_ErrorCallback (ADC_HandleTypeDef *hadc)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hadc);
-
-  /* NOTE : This function should not be modified. When the callback is needed,
-            function HAL_ADC_ErrorCallback must be implemented in the user file.
-  */
-}
-//}}}
+__weak void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
+__weak void HAL_ADC_MspDeInit (ADC_HandleTypeDef* hadc) { UNUSED(hadc);}
+__weak void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
+__weak void HAL_ADC_ConvHalfCpltCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
+__weak void HAL_ADC_LevelOutOfWindowCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
+__weak void HAL_ADC_ErrorCallback (ADC_HandleTypeDef *hadc) { UNUSED(hadc); }
 
 //{{{
 /**
@@ -307,7 +241,7 @@ HAL_StatusTypeDef HAL_ADC_Init (ADC_HandleTypeDef* hadc)
 
   /* Actions performed only if ADC is coming from state reset:                */
   /* - Initialization of ADC MSP                                              */
-  if(hadc->State == HAL_ADC_STATE_RESET)
+  if (hadc->State == HAL_ADC_STATE_RESET)
   {
     /* Init the low level hardware */
     HAL_ADC_MspInit(hadc);
@@ -320,7 +254,7 @@ HAL_StatusTypeDef HAL_ADC_Init (ADC_HandleTypeDef* hadc)
   }
 
   /* - Exit from deep-power-down mode and ADC voltage regulator enable        */
-  if(LL_ADC_IsDeepPowerDownEnabled(hadc->Instance) != 0U)
+  if (LL_ADC_IsDeepPowerDownEnabled(hadc->Instance) != 0U)
   {
     /* Disable ADC deep power down mode */
     LL_ADC_DisableDeepPowerDown(hadc->Instance);
@@ -690,36 +624,6 @@ HAL_StatusTypeDef HAL_ADC_DeInit (ADC_HandleTypeDef* hadc)
 
   __HAL_UNLOCK(hadc);
   return HAL_OK;
-}
-
-//}}}
-//{{{
-__weak void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hadc);
-
-  /* NOTE : This function should not be modified. When the callback is needed,
-            function HAL_ADC_MspInit must be implemented in the user file.
-   */
-}
-//}}}
-//{{{
-/**
-  * @brief  DeInitialize the ADC MSP.
-  * @param hadc ADC handle
-  * @note   All ADC instances use the same core clock at RCC level, disabling
-  *         the core clock reset all ADC instances).
-  * @retval None
-  */
-__weak void HAL_ADC_MspDeInit (ADC_HandleTypeDef* hadc)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hadc);
-
-  /* NOTE : This function should not be modified. When the callback is needed,
-            function HAL_ADC_MspDeInit must be implemented in the user file.
-   */
 }
 //}}}
 
@@ -1711,34 +1615,31 @@ void HAL_ADC_IRQHandler (ADC_HandleTypeDef* hadc) {
   if (((tmp_isr & ADC_FLAG_AWD1) == ADC_FLAG_AWD1) && ((tmp_ier & ADC_IT_AWD1) == ADC_IT_AWD1)) {
     /* Set ADC state */
     SET_BIT(hadc->State, HAL_ADC_STATE_AWD1);
-
     /* Level out of window 1 callback */
     HAL_ADC_LevelOutOfWindowCallback(hadc);
     /* Clear ADC analog watchdog flag */
     __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_AWD1);
-  }
+    }
 
   /* ========== Check analog watchdog 2 flag ========== */
   if (((tmp_isr & ADC_FLAG_AWD2) == ADC_FLAG_AWD2) && ((tmp_ier & ADC_IT_AWD2) == ADC_IT_AWD2)) {
     /* Set ADC state */
     SET_BIT(hadc->State, HAL_ADC_STATE_AWD2);
-
     /* Level out of window 2 callback */
     HAL_ADCEx_LevelOutOfWindow2Callback(hadc);
     /* Clear ADC analog watchdog flag */
     __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_AWD2);
-  }
+    }
 
   /* ========== Check analog watchdog 3 flag ========== */
   if (((tmp_isr & ADC_FLAG_AWD3) == ADC_FLAG_AWD3) && ((tmp_ier & ADC_IT_AWD3) == ADC_IT_AWD3)) {
     /* Set ADC state */
     SET_BIT(hadc->State, HAL_ADC_STATE_AWD3);
-
     /* Level out of window 3 callback */
     HAL_ADCEx_LevelOutOfWindow3Callback(hadc);
     /* Clear ADC analog watchdog flag */
     __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_AWD3);
-  }
+    }
 
   /* ========== Check Overrun flag ========== */
   if (((tmp_isr & ADC_FLAG_OVR) == ADC_FLAG_OVR) && ((tmp_ier & ADC_IT_OVR) == ADC_IT_OVR)) {
@@ -1750,56 +1651,50 @@ void HAL_ADC_IRQHandler (ADC_HandleTypeDef* hadc) {
     /* error.                                                                 */
     if (hadc->Init.Overrun == ADC_OVR_DATA_PRESERVED)
       overrun_error = 1;
-    else
-    {
+    else {
       /* Check DMA configuration */
       if (ADC_IS_DUAL_CONVERSION_ENABLE(hadc) == RESET) {
         /* Multimode not set or feature not available or ADC independent */
         if (HAL_IS_BIT_SET(hadc->Instance->CFGR, ADC_CFGR_DMAEN))
           overrun_error = 1;
-      }
+        }
       else {
         /* Multimode (when feature is available) is enabled,
            Common Control Register MDMA bits must be checked. */
         if (ADC_MULTIMODE_DMA_ENABLED(hadc))
           overrun_error = 1;
+        }
       }
-    }
 
     if (overrun_error == 1) {
       /* Change ADC state to error state */
       SET_BIT(hadc->State, HAL_ADC_STATE_REG_OVR);
-
       /* Set ADC error code to overrun */
       SET_BIT(hadc->ErrorCode, HAL_ADC_ERROR_OVR);
-
       /* Error callback */
       /* Note: In case of overrun, ADC conversion data is preserved until     */
       /*       flag OVR is reset.                                             */
       /*       Therefore, old ADC conversion data can be retrieved in         */
       /*       function "HAL_ADC_ErrorCallback()".                            */
       HAL_ADC_ErrorCallback(hadc);
-    }
+     }
 
     /* Clear ADC overrun flag */
     __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_OVR);
-  }
+    }
 
   /* ========== Check Injected context queue overflow flag ========== */
   if (((tmp_isr & ADC_FLAG_JQOVF) == ADC_FLAG_JQOVF) && ((tmp_ier & ADC_IT_JQOVF) == ADC_IT_JQOVF)) {
     /* Change ADC state to overrun state */
     SET_BIT(hadc->State, HAL_ADC_STATE_INJ_JQOVF);
-
     /* Set ADC error code to Injected context queue overflow */
     SET_BIT(hadc->ErrorCode, HAL_ADC_ERROR_JQOVF);
-
     /* Clear the Injected context queue overflow flag */
     __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_JQOVF);
-
     /* Error callback */
     HAL_ADCEx_InjectedQueueOverflowCallback(hadc);
+    }
   }
-}
 //}}}
 
 //{{{
