@@ -15,6 +15,93 @@
 using namespace std;
 //}}}
 const string kHello = "smallLcd " + string(__TIME__) + " " + string(__DATE__);
+//{{{
+class cFilter {
+public:
+  uint16_t getMedianValue() {
+    memcpy (mSorted, mValues, kMaxIndex * 2);
+    return quickSelect (0, mMaxIndex-1, mMaxIndex/2);
+    }
+
+  uint16_t getAverageMedianValue() {
+    memcpy (mSorted, mValues, kMaxIndex * 2);
+    uint16_t median =  quickSelect (0, mMaxIndex-1, mMaxIndex/2);
+    uint16_t medianBefore = mMaxIndex > 5 ? quickSelect (0, mMaxIndex-1, (mMaxIndex/2) -1) : median;
+    uint16_t medianAfter = mMaxIndex > 5 ? quickSelect (0, mMaxIndex-1, (mMaxIndex/2) + 1) : median;
+
+    return (median + medianBefore + medianAfter) / 3;
+    }
+
+  uint16_t getAverageValue() {
+    uint32_t sum = 0;
+    for (int i = 0; i < mMaxIndex; i++)
+      sum += mValues[i];
+    return sum / mMaxIndex;
+    }
+
+  void addValue (uint16_t value) {
+    mValues[mCurIndex] = value;
+    mCurIndex = (mCurIndex + 1) % kMaxIndex;
+    if (mMaxIndex < kMaxIndex)
+      mMaxIndex++;
+    }
+
+  //{{{
+  void clear() {
+    mCurIndex = 0;
+    mMaxIndex = 0;
+    }
+  //}}}
+
+private:
+  static const int kMaxIndex = 9;
+
+  //{{{
+  uint8_t partition (uint8_t p, uint8_t r) {
+
+    uint16_t pivot = mSorted[r];
+    while (p < r) {
+      while (mSorted[p] < pivot)
+        p++;
+
+      while (mSorted[r] > pivot)
+        r--;
+
+      if (mSorted[p] == mSorted[r])
+        p++;
+      else if (p < r) {
+        uint16_t swap = mSorted[p];
+        mSorted[p] = mSorted[r];
+        mSorted[r] = swap;
+        }
+      }
+
+    return r;
+    }
+  //}}}
+  //{{{
+  uint16_t quickSelect (uint8_t p, uint8_t r, uint8_t k) {
+
+    if (p == r)
+      return mSorted[p];
+
+    uint8_t j = partition (p, r);
+    uint8_t length = j - p + 1;
+    if (length == k)
+      return mSorted[j];
+    else if (k < length)
+      return quickSelect (p, j - 1, k);
+    else
+      return quickSelect (j + 1, r, k - length);
+    }
+  //}}}
+
+  uint16_t mValues[kMaxIndex];
+  uint16_t mSorted[kMaxIndex];
+  uint8_t mCurIndex = 0;
+  uint32_t mMaxIndex = 0;
+  };
+//}}}
 
 // vars
 cLcd* lcd = nullptr;
@@ -33,7 +120,10 @@ volatile uint16_t v5vValue = 0;
 volatile uint16_t xValue = 0;
 volatile uint16_t yValue = 0;
 
-cPoint mTouch;
+volatile bool mPressed = false;
+cPointF mTouch;
+cFilter xFilter;
+cFilter yFilter;
 
 ADC_HandleTypeDef AdcHandle;
 extern "C" { void ADC1_IRQHandler() { HAL_ADC_IRQHandler (&AdcHandle); } }
@@ -146,11 +236,6 @@ void uiThread (void* arg) {
       //                                 dec (v5vValue) + " " +
       //                                 dec (int (v5v),1,' ') + "." +
       //                                 dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 20, 320, 40));
-      lcd->text (kWhite, 20,
-                 dec (xValue,4,' ') + ":" + dec (yValue, 4, ' ') + " " + dec(mConversions),
-                 cRect (0, 40, 320, 60));
-
-
       lcd->drawInfo();
       //{{{  get clock
       float hourA;
@@ -182,7 +267,15 @@ void uiThread (void* arg) {
       lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
       lcd->aRender (sRgba (255,255,0, 128));
       //}}}
-      lcd->ellipse (kGreen, mTouch, cPoint(16,16));
+
+      if (mPressed) {
+        lcd->text (kWhite, 20,
+                   dec (xValue,4,' ') + ":" + dec (yValue, 4, ' ') + " " + dec(mConversions),
+                   cRect (0, 40, 320, 60));
+        int steps = 32;
+        lcd->aEllipse (mTouch, cPointF (16.f, 16.f), steps);
+        lcd->aRender (kGreen, false);
+        }
 
       lcd->text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
       lcd->present();
@@ -292,7 +385,7 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
     case ePress:
       printf ("ePress %d\n", value);
       if (value < 2500) {
-        //{{{  select x
+        //{{{  select readX
         // pa2:y+ > adcChannel7 - select xValue
         GPIO_InitStruct.Pin = GPIO_PIN_2;
         GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
@@ -311,16 +404,24 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
         HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
         HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 
-        mReadState = eReadX;
-        //}}}
         if (HAL_ADC_ConfigChannel (adcHandle, &sConfig) != HAL_OK)
           printf ("HAL_ADC_Init failed\n");
+
+        mReadState = eReadX;
+        }
+        //}}}
+      else {
+        mPressed = false;
+        xFilter.clear();
+        yFilter.clear();
         }
       break;
+
     case eReadX :
-      //{{{  read x, select y
-      xValue = value;
-      mTouch.x = ((xValue - 300) * 320) / (3700 - 300);
+      //{{{  read x, select readY
+      xFilter.addValue (value);
+      xValue = xFilter.getAverageMedianValue();
+      mTouch.x = ((xValue - 300) * 320) / float(3700 - 300);
 
       // pa4:x+ > adcChannel9 rank1 - select yValue
       GPIO_InitStruct.Pin = GPIO_PIN_4;
@@ -340,15 +441,25 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
       HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
       HAL_GPIO_WritePin (GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
 
-      mReadState = eReadY;
-      //}}}
       if (HAL_ADC_ConfigChannel (adcHandle, &sConfig) != HAL_OK)
         printf ("HAL_ADC_Init failed\n");
+
+      mReadState = eReadY;
+      //}}}
       break;
+
     case eReadY:
-      // read Y select press
-      yValue = value;
-      mTouch.y = ((yValue - 350) * 480) / (3800 - 350);
+      //{{{  read Y, select press
+      yFilter.addValue (value);
+      yValue = yFilter.getAverageMedianValue();
+      mTouch.y = ((yValue - 350) * 480) / float(3800 - 350);
+      mPressed = true;
+
+      // pa1:y- - adcChannel6 rank1
+      GPIO_InitStruct.Pin = GPIO_PIN_1;
+      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+      GPIO_InitStruct.Pull = GPIO_PULLUP;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
       // pa2:y+ hiZ
       GPIO_InitStruct.Pin = GPIO_PIN_2;
@@ -361,17 +472,12 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
       HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
       HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3 | GPIO_PIN_4, GPIO_PIN_RESET);
 
-      // pa1:y- - adcChannel6 rank1
-      GPIO_InitStruct.Pin = GPIO_PIN_1;
-      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-      GPIO_InitStruct.Pull = GPIO_PULLUP;
-      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
       sConfig.Channel = ADC_CHANNEL_6;
       if (HAL_ADC_ConfigChannel (&AdcHandle, &sConfig) != HAL_OK)
         printf ("HAL_ADC_Init failed\n");
 
       mReadState = ePress;
+      //}}}
       break;
       }
 
