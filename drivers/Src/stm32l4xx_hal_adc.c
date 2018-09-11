@@ -192,6 +192,22 @@
 /*   Calculation: 653 * 256 * 256 = 42795008 CPU clock cycles max             */
 /* Unit: cycles of CPU clock.                                                 */
 #define ADC_CONVERSION_TIME_MAX_CPU_CYCLES ((uint32_t) 42795008)  /*!< ADC conversion completion time-out value */
+
+// ex defines
+#define ADC_JSQR_FIELDS  ((uint32_t)(ADC_JSQR_JL | ADC_JSQR_JEXTSEL | ADC_JSQR_JEXTEN |\
+                                     ADC_JSQR_JSQ1  | ADC_JSQR_JSQ2 |\
+                                      ADC_JSQR_JSQ3 | ADC_JSQR_JSQ4 ))  /*!< ADC_JSQR fields of parameters that can be updated anytime
+                                                                             once the ADC is enabled */
+
+/* Fixed timeout value for ADC calibration.                                   */
+/* Values defined to be higher than worst cases: low clock frequency,         */
+/* maximum prescalers.                                                        */
+/* Ex of profile low frequency : f_ADC at 0.14 MHz (minimum value             */
+/* according to Data sheet), calibration_time MAX = 112 / f_ADC               */
+/*           112 / 140,000 = 0.8 ms                                           */
+/* At maximum CPU speed (80 MHz), this means                                  */
+/*    0.8 ms * 80 MHz = 64000 CPU cycles                                      */
+#define ADC_CALIBRATION_TIMEOUT         (64000U)    /*!< ADC calibration time-out value */
 //}}}
 
 __weak void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
@@ -200,6 +216,12 @@ __weak void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
 __weak void HAL_ADC_ConvHalfCpltCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
 __weak void HAL_ADC_LevelOutOfWindowCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
 __weak void HAL_ADC_ErrorCallback (ADC_HandleTypeDef *hadc) { UNUSED(hadc); }
+__weak void HAL_ADCEx_InjectedConvCpltCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
+__weak void HAL_ADCEx_InjectedQueueOverflowCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
+__weak void HAL_ADCEx_LevelOutOfWindow2Callback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
+__weak void HAL_ADCEx_LevelOutOfWindow3Callback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
+__weak void HAL_ADCEx_EndOfSamplingCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
+
 
 //{{{
 /**
@@ -1946,29 +1968,6 @@ void ADC_DMAError (DMA_HandleTypeDef* hdma) {
   HAL_ADC_ErrorCallback(hadc);
   }
 //}}}
-
-// ex
-//{{{  defines
-#define ADC_JSQR_FIELDS  ((uint32_t)(ADC_JSQR_JL | ADC_JSQR_JEXTSEL | ADC_JSQR_JEXTEN |\
-                                     ADC_JSQR_JSQ1  | ADC_JSQR_JSQ2 |\
-                                      ADC_JSQR_JSQ3 | ADC_JSQR_JSQ4 ))  /*!< ADC_JSQR fields of parameters that can be updated anytime
-                                                                             once the ADC is enabled */
-
-/* Fixed timeout value for ADC calibration.                                   */
-/* Values defined to be higher than worst cases: low clock frequency,         */
-/* maximum prescalers.                                                        */
-/* Ex of profile low frequency : f_ADC at 0.14 MHz (minimum value             */
-/* according to Data sheet), calibration_time MAX = 112 / f_ADC               */
-/*           112 / 140,000 = 0.8 ms                                           */
-/* At maximum CPU speed (80 MHz), this means                                  */
-/*    0.8 ms * 80 MHz = 64000 CPU cycles                                      */
-#define ADC_CALIBRATION_TIMEOUT         (64000U)    /*!< ADC calibration time-out value */
-//}}}
-__weak void HAL_ADCEx_InjectedConvCpltCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
-__weak void HAL_ADCEx_InjectedQueueOverflowCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
-__weak void HAL_ADCEx_LevelOutOfWindow2Callback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
-__weak void HAL_ADCEx_LevelOutOfWindow3Callback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
-__weak void HAL_ADCEx_EndOfSamplingCallback (ADC_HandleTypeDef* hadc) { UNUSED(hadc); }
 
 //{{{
 /*
