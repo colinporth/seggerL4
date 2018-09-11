@@ -16,16 +16,15 @@
 using namespace std;
 //}}}
 const string kHello = "smallLcd " + string(__TIME__) + " " + string(__DATE__);
-
-// vars
+//{{{  vars
 cLcd* lcd = nullptr;
 cRtc* rtc = nullptr;
 
 uint16_t vRefIntValueCalibrated = 0;
 
 enum eReadState { ePress, eReadX, eReadY };
-
 volatile eReadState mReadState = eReadX;
+
 volatile bool mConverted = false;
 volatile uint32_t mConversions = 0;
 volatile uint16_t vRefIntValue = 0;
@@ -40,6 +39,7 @@ cFilter xFilter;
 cFilter yFilter;
 
 ADC_HandleTypeDef gAdcHandle;
+//}}}
 extern "C" { void ADC1_IRQHandler() { HAL_ADC_IRQHandler (&gAdcHandle); } }
 
 //{{{  rank1 vrefint
@@ -233,9 +233,9 @@ void clockConfig() {
 //{{{
 void uiThread (void* arg) {
 
-  cPointF centre = cPointF (160.f, 240.f);
   float radius = 20.f;
   const float maxRadius = 160.f;
+  cPointF centre = cPointF (160.f, 240.f);
 
   lcd->tftInit();
   lcd->display (70);
@@ -315,8 +315,10 @@ void uiThread (void* arg) {
       lcd->text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
       lcd->present();
       }
+
     vTaskDelay (10);
     }
+
   }
 //}}}
 //{{{
