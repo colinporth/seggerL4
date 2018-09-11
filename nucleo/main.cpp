@@ -293,7 +293,10 @@ void uiThread (void* arg) {
 
       if (mPressed) {
         lcd->text (kWhite, 20,
-                   dec (xValue,4,' ') + ":" + dec (yValue, 4, ' ') + " " + dec(mConversions),
+                   dec (xValue,4,' ') + "," + dec (yValue, 4, ' ') + " " +
+                   dec (int(mTouch.x)) + "." + dec (int(mTouch.x * 10) % 10, 1,'0') + "," +
+                   dec (int(mTouch.y)) + "." + dec (int(mTouch.y * 10) % 10, 1,'0') + " " +
+                   dec(mConversions),
                    cRect (0, 40, 320, 60));
         int steps = 32;
         lcd->aEllipse (mTouch, cPointF (16.f, 16.f), steps);
@@ -348,6 +351,7 @@ void appThread (void* arg) {
   //}}}
 
   selectPress();
+
   while (true) {
     mConverted = false;
     HAL_ADC_Start_IT (&gAdcHandle);
