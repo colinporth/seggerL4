@@ -24,6 +24,9 @@ cTouch* gTouch = nullptr;
 
 float radius = 160.f;
 cPointF centre = cPointF (160.f, 240.f);
+
+enum eMove { eNotPressed, ePressed, eMoveCentre, eMoveRadius};
+eMove mMove = eNotPressed;
 //}}}
 extern "C" { void ADC1_IRQHandler() { gTouch->irqHandler(); } }
 void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) { gTouch->converted(); }
@@ -132,10 +135,10 @@ void uiThread (void* arg) {
       //{{{  render clock
       auto r = radius;
       lcd->aEllipse (centre, cPointF(r-4.f, r), 64);
-      lcd->aRender (sRgba (128,128,128, 192), false);
+      lcd->aRender (mMove == eMoveCentre ? kGrey : sRgba (128,128,128, 192), false);
 
       lcd->aEllipseOutline (centre, cPointF(r, r), 4.f, 64);
-      lcd->aRender (sRgba (180,180,0, 255), false);
+      lcd->aRender (mMove == eMoveRadius ? kWhite : sRgba (180,180,0, 255), false);
 
       float handWidth = r > 60.f ? radius / 20.f : 3.f;
       float hourR = r * 0.75f;
@@ -166,34 +169,31 @@ void appThread (void* arg) {
 
   gTouch->init();
 
-  enum eMove { eNotPressed, ePressed, eMoveCentre, eMoveRadius};
-  eMove move = eNotPressed;
-
   while (true) {
     gTouch->start();
     gTouch->wait();
 
     if (gTouch->getState() == cTouch::ePress) {
       if (gTouch->getPressed()) {
-        if (move == eNotPressed) {
+        if (mMove == eNotPressed) {
           if ((centre - gTouch->getTouch()).magnitude() < 32.f)
-            move = eMoveCentre;
+            mMove = eMoveCentre;
           else if (abs((centre - gTouch->getTouch()).magnitude() - radius) < 32.f)
-            move = eMoveRadius;
+            mMove = eMoveRadius;
           else
-            move = ePressed;
+            mMove = ePressed;
           }
 
-        if (move == eMoveCentre)
+        if (mMove == eMoveCentre)
           centre = gTouch->getTouch();
-        else if (move == eMoveRadius)
+        else if (mMove == eMoveRadius)
           radius = (centre - gTouch->getTouch()).magnitude();
 
         lcd->change();
         vTaskDelay (1);
         }
       else {
-        move = eNotPressed;
+        mMove = eNotPressed;
         vTaskDelay (50);
         }
       }
