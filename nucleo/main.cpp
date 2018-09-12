@@ -34,6 +34,7 @@ volatile bool mConverted = false;
 volatile uint16_t xValue = 0;
 volatile uint16_t yValue = 0;
 volatile bool mPressed = false;
+
 cPointF mTouch;
 cFilter xFilter (9);
 cFilter yFilter (9);
@@ -357,7 +358,6 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
 
   switch (mTouchState) {
     case eTouchPress:
-      printf ("ePress %d\n", value);
       if (value < 3000)
         selectTouch (eTouchReadX);
       else {
