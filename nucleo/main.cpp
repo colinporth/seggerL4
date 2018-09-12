@@ -177,7 +177,7 @@ void appThread (void* arg) {
   gTouch->init();
   while (true) {
     gTouch->start();
-    gTouch->waitConverted();
+    gTouch->wait();
     if (gTouch->getState() == cTouch::ePress)
       vTaskDelay (gTouch->getPressed() ? 1 : 50);
     }

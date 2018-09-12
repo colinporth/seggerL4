@@ -1,21 +1,15 @@
 // cTouch.h
+// pa0:e5v  pa1:y-  pa2:y+  pa3:x+  pa4:x-
 #pragma once
 //{{{  includes
-#include <algorithm>
-#include <string>
-#include <ctype.h>
-
 #include "cmsis_os.h"
 #include "../common/utils.h"
 #include "../common/cPointRect.h"
 #include "../common/stm32l4xx_nucleo_144.h"
 #include "../common/cFilter.h"
-
-using namespace std;
 //}}}
 
 class cTouch {
-// pa0:e5v  pa1:y-  pa2:y+  pa3:x+  pa4:x-
 public:
   enum eState { ePress, eReadX, eReadY };
 
@@ -52,7 +46,7 @@ public:
     HAL_NVIC_EnableIRQ (ADC1_IRQn);
     //}}}
 
-    selectTouch (ePress);
+    selectConversion (ePress);
     if (HAL_ADCEx_Calibration_Start (&mAdcHandle, ADC_SINGLE_ENDED) != HAL_OK)
       printf ("HAL_ADCEx_Calibration_Start failed\n");
     }
@@ -72,14 +66,84 @@ public:
     }
   //}}}
   //{{{
-  void waitConverted() {
+  void wait() {
     //if (!xSemaphoreTake (mConvertedSem, 5000))
     //  printf ("appThread mConvertedSem take fail\n");
     while (!mConverted) {}
     }
   //}}}
+
   //{{{
-  void selectTouch (eState state) {
+  void irqHandler() {
+    HAL_ADC_IRQHandler (&mAdcHandle);
+    }
+  //}}}
+  //{{{
+  void converted() {
+
+    uint16_t value = HAL_ADC_GetValue (&mAdcHandle);
+
+    switch (mState) {
+      case ePress:
+        if (value < 3000)
+          selectConversion (eReadX);
+        else {
+          mPressed = false;
+          xFilter.clear();
+          yFilter.clear();
+          }
+        break;
+
+      case eReadX :
+        xValue = xFilter.getAverageMedianValue (value);
+        selectConversion (eReadY);
+        break;
+
+      case eReadY:
+        //  read Y, select press
+        yValue = yFilter.getAverageMedianValue (value);
+        mTouch.y = ((yValue - 450) * 480) / float(3800 - 450);
+        mTouch.x = ((xValue - 450) * 320) / float(3700 - 450);
+        mPressed = true;
+
+        selectConversion (ePress);
+        break;
+        }
+
+    //portBASE_TYPE taskWoken = pdFALSE;
+    //if (xSemaphoreGiveFromISR (mConvertedSem, &taskWoken) == pdTRUE)
+    //  portEND_SWITCHING_ISR (taskWoken);
+    mConverted = true;
+    }
+  //}}}
+
+  //{{{  rank1 vrefint
+  //sConfig.Channel = ADC_CHANNEL_VREFINT;
+  //sConfig.Rank = ADC_REGULAR_RANK_1;
+  //if (HAL_ADC_ConfigChannel (&mAdcHandle, &sConfig) != HAL_OK)
+    //printf ("HAL_ADC_Init failed\n");
+  //}}}
+  //{{{  rank2 vbat
+  //sConfig.Channel = ADC_CHANNEL_VBAT;
+  //sConfig.Rank = ADC_REGULAR_RANK_2;
+  //if (HAL_ADC_ConfigChannel (&mAdcHandle, &sConfig) != HAL_OK)
+    //printf ("HAL_ADC_Init failed\n");
+  //}}}
+  //{{{  rank3 e5v > pa0
+  //// pa0 - e5v - adc channel 5
+  //GPIO_InitStruct.Pin = GPIO_PIN_0;
+  //GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+  //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+  //sConfig.Channel = ADC_CHANNEL_5;
+  //sConfig.Rank = ADC_REGULAR_RANK_2;
+  //if (HAL_ADC_ConfigChannel (&mAdcHandle, &sConfig) != HAL_OK)
+    //printf ("HAL_ADC_Init failed\n");
+  //}}}
+
+private:
+  //{{{
+  void selectConversion (eState state) {
 
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_InitStruct.Pin = GPIO_PIN_2;
@@ -168,75 +232,6 @@ public:
     }
   //}}}
 
-  //{{{
-  void irqHandler() {
-    HAL_ADC_IRQHandler (&mAdcHandle);
-    }
-  //}}}
-  //{{{
-  void converted() {
-
-    uint16_t value = HAL_ADC_GetValue (&mAdcHandle);
-
-    switch (mState) {
-      case ePress:
-        if (value < 3000)
-          selectTouch (eReadX);
-        else {
-          mPressed = false;
-          xFilter.clear();
-          yFilter.clear();
-          }
-        break;
-
-      case eReadX :
-        xValue = xFilter.getAverageMedianValue (value);
-        selectTouch (eReadY);
-        break;
-
-      case eReadY:
-        //  read Y, select press
-        yValue = yFilter.getAverageMedianValue (value);
-        mTouch.y = ((yValue - 450) * 480) / float(3800 - 450);
-        mTouch.x = ((xValue - 450) * 320) / float(3700 - 450);
-        mPressed = true;
-
-        selectTouch (ePress);
-        break;
-        }
-
-    //portBASE_TYPE taskWoken = pdFALSE;
-    //if (xSemaphoreGiveFromISR (mConvertedSem, &taskWoken) == pdTRUE)
-    //  portEND_SWITCHING_ISR (taskWoken);
-    mConverted = true;
-    }
-  //}}}
-
-  //{{{  rank1 vrefint
-  //sConfig.Channel = ADC_CHANNEL_VREFINT;
-  //sConfig.Rank = ADC_REGULAR_RANK_1;
-  //if (HAL_ADC_ConfigChannel (&mAdcHandle, &sConfig) != HAL_OK)
-    //printf ("HAL_ADC_Init failed\n");
-  //}}}
-  //{{{  rank2 vbat
-  //sConfig.Channel = ADC_CHANNEL_VBAT;
-  //sConfig.Rank = ADC_REGULAR_RANK_2;
-  //if (HAL_ADC_ConfigChannel (&mAdcHandle, &sConfig) != HAL_OK)
-    //printf ("HAL_ADC_Init failed\n");
-  //}}}
-  //{{{  rank3 e5v > pa0
-  //// pa0 - e5v - adc channel 5
-  //GPIO_InitStruct.Pin = GPIO_PIN_0;
-  //GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-  //HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-  //sConfig.Channel = ADC_CHANNEL_5;
-  //sConfig.Rank = ADC_REGULAR_RANK_2;
-  //if (HAL_ADC_ConfigChannel (&mAdcHandle, &sConfig) != HAL_OK)
-    //printf ("HAL_ADC_Init failed\n");
-  //}}}
-
-private:
   ADC_HandleTypeDef mAdcHandle;
 
   volatile eState mState = eReadX;
