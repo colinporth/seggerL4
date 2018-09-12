@@ -4,10 +4,23 @@
 class cFilter {
 public:
   //{{{
+  cFilter (uint16_t size) : mSize (size) {
+    mValues = (uint16_t*)pvPortMalloc (size*2);
+    mSorted = (uint16_t*)pvPortMalloc (size*2);
+    }
+  //}}}
+
+  //{{{
+  ~cFilter() {
+    vPortFree (mValues);
+    vPortFree (mSorted);
+    }
+  //}}}
+  //{{{
   uint16_t getMedianValue (uint16_t value) {
 
     addValue (value);
-    memcpy (mSorted, mValues, kMaxIndex * 2);
+    memcpy (mSorted, mValues, mSize * 2);
     return quickSelect (0, mMaxIndex-1, mMaxIndex/2);
     }
   //}}}
@@ -27,7 +40,7 @@ public:
 
     addValue (value);
 
-    memcpy (mSorted, mValues, kMaxIndex * 2);
+    memcpy (mSorted, mValues, mSize * 2);
     uint16_t median =  quickSelect (0, mMaxIndex-1, mMaxIndex/2);
     uint16_t medianBefore = mMaxIndex > 5 ? quickSelect (0, mMaxIndex-1, (mMaxIndex/2) -1) : median;
     uint16_t medianAfter = mMaxIndex > 5 ? quickSelect (0, mMaxIndex-1, (mMaxIndex/2) + 1) : median;
@@ -44,13 +57,11 @@ public:
   //}}}
 
 private:
-  static const int kMaxIndex = 9;
-
   //{{{
   void addValue (uint16_t value) {
     mValues[mCurIndex] = value;
-    mCurIndex = (mCurIndex + 1) % kMaxIndex;
-    if (mMaxIndex < kMaxIndex)
+    mCurIndex = (mCurIndex + 1) % mSize;
+    if (mMaxIndex < mSize)
       mMaxIndex++;
     }
   //}}}
@@ -94,8 +105,9 @@ private:
     }
   //}}}
 
-  uint16_t mValues[kMaxIndex];
-  uint16_t mSorted[kMaxIndex];
+  const uint16_t mSize;
+  uint16_t* mValues;
+  uint16_t* mSorted;
   uint8_t mCurIndex = 0;
   uint32_t mMaxIndex = 0;
   };

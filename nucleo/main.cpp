@@ -22,21 +22,21 @@ cRtc* rtc = nullptr;
 
 uint16_t vRefIntValueCalibrated = 0;
 
-enum eReadState { ePress, eReadX, eReadY };
-volatile eReadState mReadState = eReadX;
+enum eTouchState { eTouchPress, eTouchReadX, eTouchReadY };
+volatile eTouchState mTouchState = eTouchReadX;
 
-volatile bool mConverted = false;
-volatile uint32_t mConversions = 0;
 volatile uint16_t vRefIntValue = 0;
 volatile uint16_t vBatValue = 0;
 volatile uint16_t v5vValue = 0;
+
+SemaphoreHandle_t mConvertedSem;
+volatile bool mConverted = false;
 volatile uint16_t xValue = 0;
 volatile uint16_t yValue = 0;
-
 volatile bool mPressed = false;
 cPointF mTouch;
-cFilter xFilter;
-cFilter yFilter;
+cFilter xFilter (9);
+cFilter yFilter (9);
 
 ADC_HandleTypeDef gAdcHandle;
 //}}}
@@ -66,112 +66,92 @@ extern "C" { void ADC1_IRQHandler() { HAL_ADC_IRQHandler (&gAdcHandle); } }
   //printf ("HAL_ADC_Init failed\n");
 //}}}
 //{{{
-void selectPress() {
+void selectTouch (eTouchState touchState) {
 
-  // pa2:y+ hiZ
   GPIO_InitTypeDef GPIO_InitStruct;
   GPIO_InitStruct.Pin = GPIO_PIN_2;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-  //  pa3:x+ > 0v, pa4:x- > 0v
-  GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3 | GPIO_PIN_4, GPIO_PIN_RESET);
-
-  // pa1:y- - adcChannel6 rank1
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
   ADC_ChannelConfTypeDef sConfig;
-  sConfig.Channel = ADC_CHANNEL_6;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
+
+  switch (touchState) {
+    case eTouchPress:
+      //{{{  pa3:x+ > 0v, pa4:x- > 0v  pa2:y+ > hiZ  pa1:y- - adcChannel6 rank1
+      // pa2:y+ hiZ
+      GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      //  pa3:x+ > 0v, pa4:x- > 0v
+      GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
+      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3 | GPIO_PIN_4, GPIO_PIN_RESET);
+
+      // pa1:y- - adcChannel6 rank1
+      GPIO_InitStruct.Pin = GPIO_PIN_1;
+      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+      GPIO_InitStruct.Pull = GPIO_PULLUP;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      sConfig.Channel = ADC_CHANNEL_6;
+      break;
+      //}}}
+    case eTouchReadX:
+      //{{{  pa4:x- > 0v, pa3:x+ > 3v  pa1:y- > hiZ  pa2:y+ > adcChannel7 - select xValue
+      // pa2:y+ > adcChannel7 - select xValue
+      GPIO_InitStruct.Pin = GPIO_PIN_2;
+      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      // pa1:y- > hiZ
+      GPIO_InitStruct.Pin = GPIO_PIN_1;
+      GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      // pa4:x- > 0v, pa3:x+ > 3v
+      GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
+      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+
+      sConfig.Channel = ADC_CHANNEL_7;
+
+      break;
+      //}}}
+    case eTouchReadY:
+      //{{{  pa1:y- > 0v, pa2:y+ > 3v  pa3:x+ > hiZ  pa4:x+ > adcChannel9 rank1 - select yValue
+      // pa4:x+ > adcChannel9 rank1 - select yValue
+      GPIO_InitStruct.Pin = GPIO_PIN_4;
+      GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      // pa3:x > hiZ
+      GPIO_InitStruct.Pin = GPIO_PIN_3;
+      GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+
+      // pa1:y- > 0v, pa2:y+ > 3v
+      GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2;
+      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+      HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin (GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+
+      sConfig.Channel = ADC_CHANNEL_9;
+
+      break;
+      //}}}
+    }
+
   if (HAL_ADC_ConfigChannel (&gAdcHandle, &sConfig) != HAL_OK)
     printf ("HAL_ADC_Init failed\n");
 
-  if (HAL_ADCEx_Calibration_Start (&gAdcHandle, ADC_SINGLE_ENDED) != HAL_OK)
-    printf ("HAL_ADCEx_Calibration_Start failed\n");
-
-  mReadState = ePress;
-  }
-//}}}
-//{{{
-void selectReadX() {
-
-  GPIO_InitTypeDef GPIO_InitStruct;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-
-  // pa2:y+ > adcChannel7 - select xValue
-  GPIO_InitStruct.Pin = GPIO_PIN_2;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-  // pa1:y- > hiZ
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-  // pa4:x- > 0v, pa3:x+ > 3v
-  GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-
-  ADC_ChannelConfTypeDef sConfig;
-  sConfig.Channel = ADC_CHANNEL_7;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;
-  sConfig.OffsetNumber = ADC_OFFSET_NONE;
-  sConfig.Offset = 0;
-  if (HAL_ADC_ConfigChannel (&gAdcHandle, &sConfig) != HAL_OK)
-    printf ("HAL_ADC_Init failed\n");
-
-  mReadState = eReadX;
-  }
-//}}}
-//{{{
-void selectReadY() {
-
-  GPIO_InitTypeDef GPIO_InitStruct;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-
-  // pa4:x+ > adcChannel9 rank1 - select yValue
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-  // pa3:x > hiZ
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-
-  // pa1:y- > 0v, pa2:y+ > 3v
-  GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
-  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
-
-  ADC_ChannelConfTypeDef sConfig;
-  sConfig.Channel = ADC_CHANNEL_9;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;
-  sConfig.OffsetNumber = ADC_OFFSET_NONE;
-  sConfig.Offset = 0;
-  if (HAL_ADC_ConfigChannel (&gAdcHandle, &sConfig) != HAL_OK)
-    printf ("HAL_ADC_Init failed\n");
-
-  mReadState = eReadY;
+  mTouchState = touchState;
   }
 //}}}
 
@@ -270,8 +250,7 @@ void uiThread (void* arg) {
         lcd->text (kWhite, 22,
                    dec (xValue,4,' ') + "," + dec (yValue, 4, ' ') + " " +
                    dec (int(mTouch.x)) + "." + dec (int(mTouch.x * 10) % 10, 1,'0') + "," +
-                   dec (int(mTouch.y)) + "." + dec (int(mTouch.y * 10) % 10, 1,'0') + " " +
-                   dec(mConversions / (HAL_GetTick() / 1000)),
+                   dec (int(mTouch.y)) + "." + dec (int(mTouch.y * 10) % 10, 1,'0'),
                    cRect (0, 20, 320, 42));
         }
         //}}}
@@ -355,13 +334,18 @@ void appThread (void* arg) {
   HAL_NVIC_EnableIRQ (ADC1_IRQn);
   //}}}
 
-  selectPress();
+  selectTouch (eTouchPress);
+  if (HAL_ADCEx_Calibration_Start (&gAdcHandle, ADC_SINGLE_ENDED) != HAL_OK)
+    printf ("HAL_ADCEx_Calibration_Start failed\n");
 
   while (true) {
     mConverted = false;
     HAL_ADC_Start_IT (&gAdcHandle);
+    //if (!xSemaphoreTake (mConvertedSem, 5000))
+    //  printf ("appThread mConvertedSem take fail\n");
     while (!mConverted) {}
-    if (mReadState == ePress)
+
+    if (mTouchState == eTouchPress)
       vTaskDelay (mPressed ? 1 : 50);
     }
   }
@@ -371,11 +355,11 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
 
   uint16_t value = HAL_ADC_GetValue (adcHandle);
 
-  switch (mReadState) {
-    case ePress:
+  switch (mTouchState) {
+    case eTouchPress:
       printf ("ePress %d\n", value);
-      if (value < 2500)
-        selectReadX();
+      if (value < 3000)
+        selectTouch (eTouchReadX);
       else {
         mPressed = false;
         xFilter.clear();
@@ -383,23 +367,26 @@ void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
         }
       break;
 
-    case eReadX :
+    case eTouchReadX :
       xValue = xFilter.getAverageMedianValue (value);
-      mTouch.x = ((xValue - 450) * 320) / float(3700 - 450);
-      selectReadY();
+      selectTouch (eTouchReadY);
       break;
 
-    case eReadY:
+    case eTouchReadY:
       //  read Y, select press
       yValue = yFilter.getAverageMedianValue (value);
       mTouch.y = ((yValue - 450) * 480) / float(3800 - 450);
+      mTouch.x = ((xValue - 450) * 320) / float(3700 - 450);
       mPressed = true;
 
-      selectPress();
+      selectTouch (eTouchPress);
       break;
       }
 
-  mConversions++;
+  //portBASE_TYPE taskWoken = pdFALSE;
+  //if (xSemaphoreGiveFromISR (mConvertedSem, &taskWoken) == pdTRUE)
+  //  portEND_SWITCHING_ISR (taskWoken);
+
   mConverted = true;
   }
 //}}}
@@ -412,6 +399,8 @@ int main() {
 
   BSP_LED_Init (LED_RED);
   BSP_PB_Init (BUTTON_KEY, BUTTON_MODE_GPIO);
+
+  vSemaphoreCreateBinary (mConvertedSem);
 
   rtc = new cRtc();
   rtc->init();
