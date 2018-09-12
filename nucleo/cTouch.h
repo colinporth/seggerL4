@@ -9,10 +9,18 @@
 #include "../common/cFilter.h"
 //}}}
 
+// crude registration
+#define XSTART 450
+#define XEND 3700
+#define YSTART 450
+#define YEND 3800
+#define PRESSED 2800
+
 class cTouch {
 public:
   enum eState { ePress, eReadX, eReadY };
 
+  cTouch (cPoint size) : mSize(size) {}
   //{{{
   void init() {
 
@@ -85,7 +93,7 @@ public:
 
     switch (mState) {
       case ePress:
-        if (value < 3000)
+        if (value < PRESSED)
           selectConversion (eReadX);
         else {
           mPressed = false;
@@ -102,8 +110,8 @@ public:
       case eReadY:
         //  read Y, select press
         yValue = yFilter.getAverageMedianValue (value);
-        mTouch.y = ((yValue - 450) * 480) / float(3800 - 450);
-        mTouch.x = ((xValue - 450) * 320) / float(3700 - 450);
+        mTouch.y = ((yValue - YSTART) * mSize.y) / float(YEND - YSTART);
+        mTouch.x = ((xValue - XSTART) * mSize.x) / float(XEND - XSTART);
         mPressed = true;
 
         selectConversion (ePress);
@@ -233,6 +241,8 @@ private:
   //}}}
 
   ADC_HandleTypeDef mAdcHandle;
+
+  const cPoint mSize;
 
   volatile eState mState = eReadX;
   volatile bool mConverted = false;
