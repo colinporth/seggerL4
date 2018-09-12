@@ -166,8 +166,8 @@ void appThread (void* arg) {
 
   gTouch->init();
 
-  bool pressed = false;
-  bool moveCentre = false;
+  enum eMove { eNotPressed, ePressed, eMoveCentre, eMoveRadius};
+  eMove move = eNotPressed;
 
   while (true) {
     gTouch->start();
@@ -175,19 +175,25 @@ void appThread (void* arg) {
 
     if (gTouch->getState() == cTouch::ePress) {
       if (gTouch->getPressed()) {
-        if (!pressed) {
-          moveCentre = (centre - gTouch->getTouch()).magnitude() < 32.f;
-          pressed = true;
+        if (move == eNotPressed) {
+          if ((centre - gTouch->getTouch()).magnitude() < 32.f)
+            move = eMoveCentre;
+          else if (abs((centre - gTouch->getTouch()).magnitude() - radius) < 32.f)
+            move = eMoveRadius;
+          else
+            move = ePressed;
           }
 
-        if (moveCentre)
+        if (move == eMoveCentre)
           centre = gTouch->getTouch();
-        else
+        else if (move == eMoveRadius)
           radius = (centre - gTouch->getTouch()).magnitude();
+
         lcd->change();
+        vTaskDelay (1);
         }
       else {
-        pressed = false;
+        move = eNotPressed;
         vTaskDelay (50);
         }
       }
