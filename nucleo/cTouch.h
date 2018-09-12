@@ -10,10 +10,10 @@
 //}}}
 
 // crude registration
-#define XSTART 450
-#define XEND 3700
-#define YSTART 450
-#define YEND 3800
+#define XSTART  450
+#define XEND    3700
+#define YSTART  450
+#define YEND    3800
 #define PRESSED 2800
 
 class cTouch {

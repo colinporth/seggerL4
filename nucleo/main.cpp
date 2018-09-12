@@ -18,12 +18,12 @@ using namespace std;
 const string kHello = "smallLcd " + string(__TIME__) + " " + string(__DATE__);
 
 //{{{  vars
-cLcd* lcd = nullptr;
-cRtc* rtc = nullptr;
+cLcd* gLcd = nullptr;
+cRtc* gRtc = nullptr;
 cTouch* gTouch = nullptr;
 
-float radius = 160.f;
-cPointF centre = cPointF (160.f, 240.f);
+float mRadius = 160.f;
+cPointF mCentre = cPointF (160.f, 240.f);
 
 enum eMove { eNotPressed, ePressed, eMoveCentre, eMoveRadius};
 eMove mMove = eNotPressed;
@@ -89,35 +89,35 @@ void clockConfig() {
 //{{{
 void uiThread (void* arg) {
 
-  lcd->tftInit();
-  lcd->display (70);
+  gLcd->tftInit();
+  gLcd->display (70);
 
   while (true) {
-    if (lcd->isChanged() || (lcd->getPresentTime() >= 1000)) {
-      lcd->start();
-      lcd->clear (kBlack);
-      lcd->setShowInfo (BSP_PB_GetState (BUTTON_KEY) == 0);
+    if (gLcd->isChanged() || (gLcd->getPresentTime() >= 1000)) {
+      gLcd->start();
+      gLcd->clear (kBlack);
+      gLcd->setShowInfo (BSP_PB_GetState (BUTTON_KEY) == 0);
 
       //float vRef = (3.f * vRefIntValueCalibrated) / vRefIntValue;
       //float v5v = v5vValue * ((vRef * (39.f + 27.f) / 39.f) / 4096.f);
       //float vBat = vBatValue * ((vRef * 3.f) / 4096.f);
-      //lcd->text (kWhite, 20, "vBat  " + dec (vBatValue) + " " +
+      //gLcd->text (kWhite, 20, "vBat  " + dec (vBatValue) + " " +
       //                                  dec (int (vBat),1,' ') + "." +
       //                                  dec (int (vBat * 100) % 100, 2,'0'), cRect (0, 40, 320, 60));
-      //lcd->text (kWhite, 20, "vRef " + dec (vRefIntValue) + " " +
+      //gLcd->text (kWhite, 20, "vRef " + dec (vRefIntValue) + " " +
       //                                 dec (int (vRef),1,' ') + "." +
       //                                 dec (int (vRef * 100) % 100, 2,'0') + " " +
       //                                 dec (v5vValue) + " " +
       //                                 dec (int (v5v),1,' ') + "." +
       //                                 dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 20, 320, 40));
-      lcd->drawInfo();
+      gLcd->drawInfo();
 
       if (gTouch->getPressed()) {
         //{{{  touch radius and string
-        lcd->aEllipse (gTouch->getTouch(), cPointF (16.f,16.f), 32);
-        lcd->aRender (kYellow, false);
+        gLcd->aEllipse (gTouch->getTouch(), cPointF (16.f,16.f), 32);
+        gLcd->aRender (kYellow, false);
 
-        lcd->text (kWhite, 22,
+        gLcd->text (kWhite, 22,
                    dec (gTouch->getValueX(),4,' ') + "," + dec (gTouch->getValueY(), 4, ' ') + " " +
                    dec (int(gTouch->getTouch().x)) + "." + dec (int(gTouch->getTouch().x * 10) % 10, 1,'0') + "," +
                    dec (int(gTouch->getTouch().y)) + "." + dec (int(gTouch->getTouch().y * 10) % 10, 1,'0'),
@@ -130,33 +130,34 @@ void uiThread (void* arg) {
       float minuteA;
       float secondA;
       float subSecondA;
-      rtc->getClockAngles (hourA, minuteA, secondA, subSecondA);
+      gRtc->getClockAngles (hourA, minuteA, secondA, subSecondA);
       //}}}
       //{{{  render clock
-      auto r = radius;
-      lcd->aEllipse (centre, cPointF(r-4.f, r), 64);
-      lcd->aRender (mMove == eMoveCentre ? kGrey : sRgba (128,128,128, 192), false);
+      auto r = mRadius;
+      auto c = mCentre;
+      gLcd->aEllipse (c, cPointF(r-4.f, r), 64);
+      gLcd->aRender (mMove == eMoveCentre ? kGrey : sRgba (128,128,128, 192), false);
 
-      lcd->aEllipseOutline (centre, cPointF(r, r), 4.f, 64);
-      lcd->aRender (mMove == eMoveRadius ? kWhite : sRgba (180,180,0, 255), false);
+      gLcd->aEllipseOutline (c, cPointF(r, r), 4.f, 64);
+      gLcd->aRender (mMove == eMoveRadius ? kWhite : sRgba (180,180,0, 255), false);
 
-      float handWidth = r > 60.f ? radius / 20.f : 3.f;
+      float handWidth = r > 60.f ? r / 20.f : 3.f;
       float hourR = r * 0.75f;
-      lcd->aPointedLine (centre, centre + cPointF (hourR * sin (hourA), hourR * cos (hourA)), handWidth);
-      float minuteR = radius * 0.9f;
-      lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (minuteA), minuteR * cos (minuteA)), handWidth);
-      lcd->aRender (kWhite);
+      gLcd->aPointedLine (c, c + cPointF (hourR * sin (hourA), hourR * cos (hourA)), handWidth);
+      float minuteR = r * 0.9f;
+      gLcd->aPointedLine (c, c + cPointF (minuteR * sin (minuteA), minuteR * cos (minuteA)), handWidth);
+      gLcd->aRender (kWhite);
 
       float secondR = r * 0.95f;
-      lcd->aPointedLine (centre, centre + cPointF (secondR * sin (secondA), secondR * cos (secondA)), handWidth);
-      lcd->aRender (sRgba (255,0,0, 180));
+      gLcd->aPointedLine (c, c + cPointF (secondR * sin (secondA), secondR * cos (secondA)), handWidth);
+      gLcd->aRender (sRgba (255,0,0, 180));
 
-      //float subSecondR = radius * 0.95f;
-      //lcd->aPointedLine (centre, centre + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
-      //lcd->aRender (sRgba (255,255,0, 128));
+      //float subSecondR = r * 0.95f;
+      //gLcd->aPointedLine (c, c + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
+      //gLcd->aRender (sRgba (255,255,0, 128));
       //}}}
-      lcd->text (kWhite, 30, rtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
-      lcd->present();
+      gLcd->text (kWhite, 30, gRtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
+      gLcd->present();
       }
 
     vTaskDelay (10);
@@ -168,6 +169,7 @@ void uiThread (void* arg) {
 void appThread (void* arg) {
 
   gTouch->init();
+  cPointF offset;
 
   while (true) {
     gTouch->start();
@@ -176,20 +178,22 @@ void appThread (void* arg) {
     if (gTouch->getState() == cTouch::ePress) {
       if (gTouch->getPressed()) {
         if (mMove == eNotPressed) {
-          if ((centre - gTouch->getTouch()).magnitude() < 32.f)
+          if ((mCentre - gTouch->getTouch()).magnitude() < mRadius-4.f) {
             mMove = eMoveCentre;
-          else if (abs((centre - gTouch->getTouch()).magnitude() - radius) < 32.f)
+            offset = gTouch->getTouch() - mCentre;
+            }
+          else if ((mCentre - gTouch->getTouch()).magnitude() < mRadius+24.f)
             mMove = eMoveRadius;
           else
             mMove = ePressed;
           }
 
         if (mMove == eMoveCentre)
-          centre = gTouch->getTouch();
+          mCentre = gTouch->getTouch() - offset;
         else if (mMove == eMoveRadius)
-          radius = (centre - gTouch->getTouch()).magnitude();
+          mRadius = (mCentre - gTouch->getTouch()).magnitude();
 
-        lcd->change();
+        gLcd->change();
         vTaskDelay (1);
         }
       else {
@@ -209,13 +213,13 @@ int main() {
   BSP_LED_Init (LED_RED);
   BSP_PB_Init (BUTTON_KEY, BUTTON_MODE_GPIO);
 
-  rtc = new cRtc();
-  rtc->init();
+  gRtc = new cRtc();
+  gRtc->init();
 
-  lcd = new cLcd();
-  lcd->init (kHello);
+  gLcd = new cLcd();
+  gLcd->init (kHello);
 
-  gTouch = new cTouch (lcd->getSize());
+  gTouch = new cTouch (gLcd->getSize());
 
   TaskHandle_t uiHandle;
   xTaskCreate ((TaskFunction_t)uiThread, "ui", 4096, 0, 4, &uiHandle);
