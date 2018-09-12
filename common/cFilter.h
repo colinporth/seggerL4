@@ -4,9 +4,9 @@
 class cFilter {
 public:
   //{{{
-  cFilter (uint16_t size) : mSize (size) {
-    mValues = (uint16_t*)pvPortMalloc (size*2);
-    mSorted = (uint16_t*)pvPortMalloc (size*2);
+  cFilter() : mSize(9) {
+    mValues = (uint16_t*)pvPortMalloc (mSize*2);
+    mSorted = (uint16_t*)pvPortMalloc (mSize*2);
     }
   //}}}
 
