@@ -26,45 +26,16 @@
 //#define HAL_SRAM_MODULE_ENABLED
 //}}}
 
-#if !defined  (HSE_VALUE)
-  #define HSE_VALUE    ((uint32_t)8000000) /*!< Value of the External oscillator in Hz */
-#endif
-
-#if !defined  (HSE_STARTUP_TIMEOUT)
-  #define HSE_STARTUP_TIMEOUT    ((uint32_t)100)   /*!< Time out for HSE start up, in ms */
-#endif
-
-#if !defined  (MSI_VALUE)
-  #define MSI_VALUE    ((uint32_t)4000000) /*!< Value of the Internal oscillator in Hz*/
-#endif
-
-#if !defined  (HSI_VALUE)
-  #define HSI_VALUE    ((uint32_t)16000000) /*!< Value of the Internal oscillator in Hz*/
-#endif
-
-#if !defined  (HSI48_VALUE)
- #define HSI48_VALUE   ((uint32_t)48000000U) /*!< Value of the Internal High Speed oscillator for USB FS/SDMMC/RNG in Hz */
-#endif
-
-#if !defined  (LSI_VALUE)
- #define LSI_VALUE  ((uint32_t)32000)       /*!< LSI Typical Value in Hz*/
-#endif                     /*!< Value of the Internal Low Speed oscillator in Hz The real value may vary depending on the variations in voltage and temperature.*/
-
-#if !defined  (LSE_VALUE)
-  #define LSE_VALUE    ((uint32_t)32768) /*!< Value of the External oscillator in Hz*/
-#endif
-
-#if !defined  (LSE_STARTUP_TIMEOUT)
-  #define LSE_STARTUP_TIMEOUT    ((uint32_t)5000)   /*!< Time out for LSE start up, in ms */
-#endif
-
-#if !defined  (EXTERNAL_SAI1_CLOCK_VALUE)
-  #define EXTERNAL_SAI1_CLOCK_VALUE    ((uint32_t)48000) /*!< Value of the SAI1 External clock source in Hz*/
-#endif
-
-#if !defined  (EXTERNAL_SAI2_CLOCK_VALUE)
-  #define EXTERNAL_SAI2_CLOCK_VALUE    ((uint32_t)48000) /*!< Value of the SAI2 External clock source in Hz*/
-#endif
+#define HSE_VALUE    ((uint32_t)8000000) /*!< Value of the External oscillator in Hz */
+#define HSE_STARTUP_TIMEOUT    ((uint32_t)100)   /*!< Time out for HSE start up, in ms */
+#define MSI_VALUE    ((uint32_t)4000000) /*!< Value of the Internal oscillator in Hz*/
+#define HSI_VALUE    ((uint32_t)16000000) /*!< Value of the Internal oscillator in Hz*/
+#define HSI48_VALUE   ((uint32_t)48000000U) /*!< Value of the Internal High Speed oscillator for USB FS/SDMMC/RNG in Hz */
+#define LSI_VALUE  ((uint32_t)32000)       /*!< LSI Typical Value in Hz*/
+#define LSE_VALUE    ((uint32_t)32768) /*!< Value of the External oscillator in Hz*/
+#define LSE_STARTUP_TIMEOUT    ((uint32_t)5000)   /*!< Time out for LSE start up, in ms */
+#define EXTERNAL_SAI1_CLOCK_VALUE    ((uint32_t)48000) /*!< Value of the SAI1 External clock source in Hz*/
+#define EXTERNAL_SAI2_CLOCK_VALUE    ((uint32_t)48000) /*!< Value of the SAI2 External clock source in Hz*/
 
 #define VDD_VALUE         ((uint32_t)3300) /*!< Value of VDD in mv */
 #define TICK_INT_PRIORITY ((uint32_t)0x0F) /*!< tick interrupt priority */

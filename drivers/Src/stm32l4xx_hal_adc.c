@@ -1,5 +1,5 @@
 //{{{
-/*  
+/*
   (+) 12-bit, 10-bit, 8-bit or 6-bit configurable resolution.
   (+) Interrupt generation at the end of regular conversion and in case of
       analog watchdog or overrun events.
@@ -2600,8 +2600,7 @@ HAL_StatusTypeDef ADC_Enable (ADC_HandleTypeDef* hadc) {
 HAL_StatusTypeDef ADC_Disable (ADC_HandleTypeDef* hadc) {
 
   /* Verification if ADC is not already disabled:                             */
-  /* Note: forbidden to disable ADC (set bit ADC_CR_ADDIS) if ADC is already  */
-  /*       disabled.                                                          */
+  /* Note: forbidden to disable ADC (set bit ADC_CR_ADDIS) if ADC is already  disabled*/
   if (ADC_IS_ENABLE (hadc) != RESET) {
     /* Check if conditions to disable the ADC are fulfilled */
     if (ADC_DISABLING_CONDITIONS(hadc) != RESET) {
@@ -2714,76 +2713,68 @@ void ADC_DMAError (DMA_HandleTypeDef* hdma) {
 //}}}
 
 //{{{
-/*
-      (+) Perform the ADC self-calibration for single or differential ending.
-      (+) Get calibration factors for single or differential ending.
-      (+) Set calibration factors for single or differential ending.
-
-      (+) Start conversion of ADC group injected.
-      (+) Stop conversion of ADC group injected.
-      (+) Poll for conversion complete on ADC group injected.
-      (+) Get result of ADC group injected channel conversion.
-      (+) Start conversion of ADC group injected and enable interruptions.
-      (+) Stop conversion of ADC group injected and disable interruptions.
-
-      (+) When multimode feature is available, start multimode and enable DMA transfer.
-      (+) Stop multimode and disable ADC DMA transfer.
-      (+) Get result of multimode conversion.
-
-  * @brief  Perform an ADC automatic self-calibration
-  *         Calibration prerequisite: ADC must be disabled (execute this
-  *         function before HAL_ADC_Start() or after HAL_ADC_Stop() ).
-  * @param  hadc       ADC handle
-  * @param  SingleDiff Selection of single-ended or differential input
-  *         This parameter can be one of the following values:
-  *           @arg @ref ADC_SINGLE_ENDED       Channel in mode input single ended
-  *           @arg @ref ADC_DIFFERENTIAL_ENDED Channel in mode input differential ended
-  * @retval HAL status
-  */
+//  Perform the ADC self-calibration for single or differential ending.
+//  Get calibration factors for single or differential ending.
+//  Set calibration factors for single or differential ending.
+//  Start conversion of ADC group injected.
+//  Stop conversion of ADC group injected.
+//  Poll for conversion complete on ADC group injected.
+//  Get result of ADC group injected channel conversion.
+//  Start conversion of ADC group injected and enable interruptions.
+//  Stop conversion of ADC group injected and disable interruptions.
+//  When multimode feature is available, start multimode and enable DMA transfer.
+//  Stop multimode and disable ADC DMA transfer.
+//  Get result of multimode conversion.
+//  * @brief  Perform an ADC automatic self-calibration
+//  *         Calibration prerequisite: ADC must be disabled (execute this
+//  *         function before HAL_ADC_Start() or after HAL_ADC_Stop() ).
+//  * @param  hadc       ADC handle
+//  * @param  SingleDiff Selection of single-ended or differential input
+//  *         This parameter can be one of the following values:
+//  *           @arg @ref ADC_SINGLE_ENDED       Channel in mode input single ended
+//  *           @arg @ref ADC_DIFFERENTIAL_ENDED Channel in mode input differential ended
+//  * @retval HAL status
 HAL_StatusTypeDef HAL_ADCEx_Calibration_Start (ADC_HandleTypeDef* hadc, uint32_t SingleDiff)
 {
   HAL_StatusTypeDef tmp_hal_status = HAL_OK;
   uint32_t WaitLoopIndex = 0;
 
-  __HAL_LOCK(hadc);
+  __HAL_LOCK (hadc);
 
-  /* Calibration prerequisite: ADC must be disabled. */
-  /* Disable the ADC (if not already disabled) */
-  tmp_hal_status = ADC_Disable(hadc);
+  /* Calibration prerequisite: ADC must be disabled. Disable the ADC (if not already disabled) */
+  tmp_hal_status = ADC_Disable (hadc);
 
   /* Check if ADC is effectively disabled */
   if (tmp_hal_status == HAL_OK) {
     /* Set ADC state */
-    ADC_STATE_CLR_SET(hadc->State, HAL_ADC_STATE_REG_BUSY | HAL_ADC_STATE_INJ_BUSY, HAL_ADC_STATE_BUSY_INTERNAL);
+    ADC_STATE_CLR_SET (hadc->State, HAL_ADC_STATE_REG_BUSY | HAL_ADC_STATE_INJ_BUSY, HAL_ADC_STATE_BUSY_INTERNAL);
 
     /* Select calibration mode single ended or differential ended */
-    MODIFY_REG(hadc->Instance->CR, ADC_CR_ADCALDIF, SingleDiff);
+    MODIFY_REG (hadc->Instance->CR, ADC_CR_ADCALDIF, SingleDiff);
 
     /* Start ADC calibration */
-    SET_BIT(hadc->Instance->CR, ADC_CR_ADCAL);
+    SET_BIT (hadc->Instance->CR, ADC_CR_ADCAL);
 
     /* Wait for calibration completion */
-    while(HAL_IS_BIT_SET(hadc->Instance->CR, ADC_CR_ADCAL)) {
+    while (HAL_IS_BIT_SET(hadc->Instance->CR, ADC_CR_ADCAL)) {
       WaitLoopIndex++;
       if (WaitLoopIndex >= ADC_CALIBRATION_TIMEOUT) {
         /* Update ADC state machine to error */
-        ADC_STATE_CLR_SET(hadc->State, HAL_ADC_STATE_BUSY_INTERNAL, HAL_ADC_STATE_ERROR_INTERNAL);
-        /* Process unlocked */
-        __HAL_UNLOCK(hadc);
+        ADC_STATE_CLR_SET (hadc->State, HAL_ADC_STATE_BUSY_INTERNAL, HAL_ADC_STATE_ERROR_INTERNAL);
+        __HAL_UNLOCK (hadc);
         return HAL_ERROR;
         }
       }
 
     /* Set ADC state */
-    ADC_STATE_CLR_SET(hadc->State, HAL_ADC_STATE_BUSY_INTERNAL, HAL_ADC_STATE_READY);
+    ADC_STATE_CLR_SET (hadc->State, HAL_ADC_STATE_BUSY_INTERNAL, HAL_ADC_STATE_READY);
     }
   else
-    SET_BIT(hadc->State, HAL_ADC_STATE_ERROR_INTERNAL);
+    SET_BIT (hadc->State, HAL_ADC_STATE_ERROR_INTERNAL);
 
-    /* Note: No need to update variable "tmp_hal_status" here: already set    */
-    /*       to state "HAL_ERROR" by function disabling the ADC.              */
-
-  __HAL_UNLOCK(hadc);
+  /* Note: No need to update variable "tmp_hal_status" here: already set    */
+  /*       to state "HAL_ERROR" by function disabling the ADC.              */
+  __HAL_UNLOCK (hadc);
   return tmp_hal_status;
   }
 //}}}
@@ -2838,8 +2829,6 @@ HAL_StatusTypeDef HAL_ADCEx_Calibration_SetValue (ADC_HandleTypeDef* hadc, uint3
     SET_BIT(hadc->State, HAL_ADC_STATE_ERROR_CONFIG);
     /* Update ADC error code */
     SET_BIT(hadc->ErrorCode, HAL_ADC_ERROR_INTERNAL);
-
-    /* Update ADC state machine to error */
     tmp_hal_status = HAL_ERROR;
     }
 
@@ -2861,10 +2850,10 @@ HAL_StatusTypeDef HAL_ADCEx_Calibration_SetValue (ADC_HandleTypeDef* hadc, uint3
 HAL_StatusTypeDef HAL_ADCEx_EnableInjectedQueue (ADC_HandleTypeDef* hadc) {
 
   /* Parameter can be set only if no conversion is on-going                   */
-  if (ADC_IS_CONVERSION_ONGOING_REGULAR_INJECTED(hadc) == RESET) {
-    CLEAR_BIT(hadc->Instance->CFGR, ADC_CFGR_JQDIS);
+  if (ADC_IS_CONVERSION_ONGOING_REGULAR_INJECTED (hadc) == RESET) {
+    CLEAR_BIT (hadc->Instance->CFGR, ADC_CFGR_JQDIS);
     /* Update state, clear previous result related to injected queue overflow */
-    CLEAR_BIT(hadc->State, HAL_ADC_STATE_INJ_JQOVF);
+    CLEAR_BIT (hadc->State, HAL_ADC_STATE_INJ_JQOVF);
     return HAL_OK;
     }
   else
@@ -2884,8 +2873,8 @@ HAL_StatusTypeDef HAL_ADCEx_EnableInjectedQueue (ADC_HandleTypeDef* hadc) {
 HAL_StatusTypeDef HAL_ADCEx_DisableInjectedQueue (ADC_HandleTypeDef* hadc) {
 
   /* Parameter can be set only if no conversion is on-going                   */
-  if (ADC_IS_CONVERSION_ONGOING_REGULAR_INJECTED(hadc) == RESET) {
-    SET_BIT(hadc->Instance->CFGR, ADC_CFGR_JQDIS);
+  if (ADC_IS_CONVERSION_ONGOING_REGULAR_INJECTED (hadc) == RESET) {
+    SET_BIT (hadc->Instance->CFGR, ADC_CFGR_JQDIS);
     return HAL_OK;
     }
   else
@@ -2906,8 +2895,8 @@ HAL_StatusTypeDef HAL_ADCEx_DisableInjectedQueue (ADC_HandleTypeDef* hadc) {
 HAL_StatusTypeDef HAL_ADCEx_DisableVoltageRegulator (ADC_HandleTypeDef* hadc) {
 
   /* ADVREGEN can be written only when the ADC is disabled  */
-  if (ADC_IS_ENABLE(hadc) == RESET) {
-    CLEAR_BIT(hadc->Instance->CR, ADC_CR_ADVREGEN);
+  if (ADC_IS_ENABLE (hadc) == RESET) {
+    CLEAR_BIT (hadc->Instance->CR, ADC_CR_ADVREGEN);
     return HAL_OK;
     }
   else
@@ -2934,8 +2923,8 @@ HAL_StatusTypeDef HAL_ADCEx_DisableVoltageRegulator (ADC_HandleTypeDef* hadc) {
 HAL_StatusTypeDef HAL_ADCEx_EnterADCDeepPowerDownMode (ADC_HandleTypeDef* hadc) {
 
   /* DEEPPWD can be written only when the ADC is disabled  */
-  if (ADC_IS_ENABLE(hadc) == RESET) {
-    SET_BIT(hadc->Instance->CR, ADC_CR_DEEPPWD);
+  if (ADC_IS_ENABLE (hadc) == RESET) {
+    SET_BIT (hadc->Instance->CR, ADC_CR_DEEPPWD);
     return HAL_OK;
     }
   else

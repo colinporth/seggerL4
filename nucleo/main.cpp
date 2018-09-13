@@ -96,7 +96,9 @@ void uiThread (void* arg) {
     if (gLcd->isChanged() || (gLcd->getPresentTime() >= 1000)) {
       gLcd->start();
       gLcd->clear (kBlack);
+
       gLcd->setShowInfo (BSP_PB_GetState (BUTTON_KEY) == 0);
+      gLcd->drawInfo();
 
       //float vRef = (3.f * vRefIntValueCalibrated) / vRefIntValue;
       //float v5v = v5vValue * ((vRef * (39.f + 27.f) / 39.f) / 4096.f);
@@ -110,7 +112,6 @@ void uiThread (void* arg) {
       //                                 dec (v5vValue) + " " +
       //                                 dec (int (v5v),1,' ') + "." +
       //                                 dec (int (v5v * 100) % 100, 2,'0'), cRect (0, 20, 320, 40));
-      gLcd->drawInfo();
 
       if (gTouch->getPressed()) {
         //{{{  touch radius and string
@@ -118,21 +119,20 @@ void uiThread (void* arg) {
         gLcd->aRender (kYellow, false);
 
         gLcd->text (kWhite, 22,
-                   dec (gTouch->getValueX(),4,' ') + "," + dec (gTouch->getValueY(), 4, ' ') + " " +
-                   dec (int(gTouch->getTouch().x)) + "." + dec (int(gTouch->getTouch().x * 10) % 10, 1,'0') + "," +
-                   dec (int(gTouch->getTouch().y)) + "." + dec (int(gTouch->getTouch().y * 10) % 10, 1,'0'),
-                   cRect (0, 20, 320, 42));
+                    dec (gTouch->getValueX(),4,' ') + "," + dec (gTouch->getValueY(), 4, ' ') + " " +
+                    dec (int(gTouch->getTouch().x)) + "." + dec (int(gTouch->getTouch().x * 10) % 10, 1,'0') + "," +
+                    dec (int(gTouch->getTouch().y)) + "." + dec (int(gTouch->getTouch().y * 10) % 10, 1,'0'),
+                    cRect (0, 20, 320, 42));
         }
         //}}}
 
-      //{{{  get clock
+      //{{{  clock
       float hourA;
       float minuteA;
       float secondA;
       float subSecondA;
       gRtc->getClockAngles (hourA, minuteA, secondA, subSecondA);
-      //}}}
-      //{{{  render clock
+
       auto r = mRadius;
       auto c = mCentre;
       gLcd->aEllipse (c, cPointF(r-4.f, r), 64);
@@ -157,6 +157,7 @@ void uiThread (void* arg) {
       //gLcd->aRender (sRgba (255,255,0, 128));
       //}}}
       gLcd->text (kWhite, 30, gRtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
+
       gLcd->present();
       }
 
