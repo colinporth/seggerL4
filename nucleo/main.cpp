@@ -32,7 +32,7 @@ extern "C" { void ADC1_IRQHandler() { gTouch->irqHandler(); } }
 void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) { gTouch->converted(); }
 
 //{{{
-void clockConfig() {
+void clockConfig120Mhz() {
 // System Clock source = PLL (MSI)
 // SYSCLK(Hz)          = 120000000
 // HCLK(Hz)            = 120000000
@@ -207,7 +207,7 @@ void appThread (void* arg) {
 
 int main() {
   HAL_Init();
-  clockConfig();
+  clockConfig120Mhz();
   printf ("%s\n", kHello.c_str());
 
   BSP_LED_Init (LED_RED);
