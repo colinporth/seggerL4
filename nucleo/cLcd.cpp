@@ -14,6 +14,10 @@ using namespace std;
 //{{{
 struct sCell {
 public:
+  int16_t getX() { return mPackedCoord & 0xFFFF; }
+  int16_t getY() { return mPackedCoord >> 16; }
+  cPoint getPoint() { return cPoint (mPackedCoord & 0xFFFF, mPackedCoord >> 16); }
+
   //{{{
   void set (int16_t x, int16_t y, int c, int a) {
 
@@ -77,7 +81,7 @@ public:
 
   uint16_t getNumCells() const { return mNumCells; }
   //{{{
-  const sCell* const* getSortedCells() {
+  sCell** getSortedCells() {
 
     if (!mClosed) {
       lineTo (mCloseX8, mCloseY8);
@@ -131,7 +135,7 @@ public:
   //{{{
   void lineTo (int32_t x8, int32_t y8) {
 
-    if (mSortRequired && ((mCurX8 ^ x8) | (mCurY8 ^ y8))) {
+    if (mSortRequired && ((mCurX8 != x8) | (mCurY8 != y8))) {
       int c = mCurX8 >> 8;
       if (c < mMinX8)
         mMinX8 = c;
@@ -523,7 +527,6 @@ private:
   int32_t mCurY8 = 0;
   int32_t mCloseX8 = 0;
   int32_t mCloseY8 = 0;
-
   int32_t mMinX8;
   int32_t mMinY8;
   int32_t mMaxX8;
@@ -572,7 +575,7 @@ public:
   int16_t getY() const { return mLast.y; }
   int16_t getBaseX() const { return mMinX;  }
   uint16_t getNumSpans() const { return mNumSpans; }
-  int isReady (int16_t y) const { return mNumSpans && (y ^ mLast.y); }
+  bool isReady (int16_t y) const { return mNumSpans && (y != mLast.y); }
 
   //{{{
   void resetSpans() {
@@ -587,17 +590,17 @@ public:
   void reset (int16_t minx, int16_t maxx) {
 
     uint16_t maxLen = maxx - minx + 2;
-    if (maxLen > mMaxlen) {
+    if (maxLen > mMaxLen) {
       // increase allocations
-      mMaxlen = maxLen;
+      mMaxLen = maxLen;
 
       vPortFree (mStartPtrs);
       vPortFree (mCounts);
       vPortFree (mCoverage);
 
       mCoverage = (uint8_t*)pvPortMalloc (maxLen);
-      mCounts = (uint16_t*)pvPortMalloc (maxLen * 2);
       mStartPtrs = (uint8_t**)pvPortMalloc (maxLen * 4);
+      mCounts = (uint16_t*)pvPortMalloc (maxLen * 2);
       }
 
     mMinX = minx;
@@ -642,19 +645,17 @@ public:
   //}}}
 
 private:
-  int16_t mMinX = 0;
-  uint16_t mMaxlen = 0;
-  cPoint mLast;
-
   uint8_t* mCoverage = nullptr;
-
   uint8_t** mStartPtrs = nullptr;
-  uint8_t** mCurStartPtr = nullptr;
-
   uint16_t* mCounts = nullptr;
+
+  uint8_t** mCurStartPtr = nullptr;
   uint16_t* mCurCount = nullptr;
 
   uint16_t mNumSpans = 0;
+  int16_t mMinX = 0;
+  uint16_t mMaxLen = 0;
+  cPoint mLast;
   };
 //}}}
 //{{{
@@ -1142,7 +1143,7 @@ void cLcd::aEllipseOutline (const cPointF& centre, const cPointF& radius, float 
 //{{{
 void cLcd::aRender (const sRgba colour, bool fillNonZero) {
 
-  const sCell* const* sortedCells = mOutline.getSortedCells();
+  sCell** sortedCells = mOutline.getSortedCells();
   uint32_t numCells = mOutline.getNumCells();
   if (!numCells)
     return;
@@ -1151,9 +1152,9 @@ void cLcd::aRender (const sRgba colour, bool fillNonZero) {
   mScanLine.reset (mOutline.getMinX(), mOutline.getMaxX());
 
   int coverage = 0;
-  const sCell* cell = *sortedCells++;
+  sCell* cell = *sortedCells++;
   while (true) {
-    cPoint p (cell->mPackedCoord & 0xFFFF, cell->mPackedCoord >> 16);
+    cPoint p  = cell->getPoint();
     int packedCoord = cell->mPackedCoord;
     int area = cell->mArea;
     coverage += cell->mCoverage;
@@ -1181,15 +1182,15 @@ void cLcd::aRender (const sRgba colour, bool fillNonZero) {
     if (!cell)
       break;
 
-    if (int16_t(cell->mPackedCoord & 0xFFFF) > p.x) {
+    if (cell->getX() > p.x) {
       uint8_t alpha = calcAlpha (coverage << 9, fillNonZero);
       if (alpha) {
         if (mScanLine.isReady (p.y)) {
-           renderScanLine (&mScanLine, colour);
-           mScanLine.resetSpans();
-           }
-         mScanLine.addSpan (p, int16_t(cell->mPackedCoord & 0xFFFF) - p.x, mGamma[alpha]);
-         }
+          renderScanLine (&mScanLine, colour);
+          mScanLine.resetSpans();
+          }
+        mScanLine.addSpan (p, cell->getX() - p.x, mGamma[alpha]);
+        }
       }
     }
 
