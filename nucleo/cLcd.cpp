@@ -892,7 +892,7 @@ void cLcd::ellipse (const sRgba colour, cPoint centre, cPoint radius) {
   }
 //}}}
 //{{{
-int cLcd::text (const sRgba colour, uint16_t fontHeight, const string& str, cRect r) {
+int16_t cLcd::text (const sRgba colour, uint16_t fontHeight, const string& str, cRect r) {
 
   ready();
   DMA2D->FGPFCCR = (colour.getA() < 255) ? ((colour.getA() << 24) | 0x20000 | DMA2D_INPUT_A8) : DMA2D_INPUT_A8;

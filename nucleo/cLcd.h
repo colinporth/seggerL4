@@ -122,7 +122,7 @@ public:
   void rectClipped (const sRgba colour, cRect r);
   void rectOutline (const sRgba colour, const cRect& r, uint8_t thickness);
   void ellipse (const sRgba colour, cPoint centre, cPoint radius);
-  int text (const sRgba colour, uint16_t fontHeight, const std::string& str, cRect r);
+  int16_t text (const sRgba colour, uint16_t fontHeight, const std::string& str, cRect r);
 
   void copy (cTile* tile, cPoint p);
   void copy90 (cTile* tile, cPoint p);
