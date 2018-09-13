@@ -7,6 +7,8 @@
 
 #include "../freetype/FreeSansBold.h"
 #include "cpuUsage.h"
+
+using namespace std;
 //}}}
 
 //{{{
@@ -68,17 +70,17 @@ public:
     }
   //}}}
 
-  int32_t getMinx() const { return mMinx; }
-  int32_t getMiny() const { return mMiny; }
-  int32_t getMaxx() const { return mMaxx; }
-  int32_t getMaxy() const { return mMaxy; }
+  int32_t getMinX() const { return mMinX8; }
+  int32_t getMinY() const { return mMinY8; }
+  int32_t getMaxX() const { return mMaxX8; }
+  int32_t getMaxY() const { return mMaxY8; }
 
   uint16_t getNumCells() const { return mNumCells; }
   //{{{
   const sCell* const* getSortedCells() {
 
     if (!mClosed) {
-      lineTo (mClosex, mClosey);
+      lineTo (mCloseX8, mCloseY8);
       mClosed = true;
       }
 
@@ -103,50 +105,50 @@ public:
     mSortRequired = true;
     mClosed = true;
 
-    mMinx =  0x7FFFFFFF;
-    mMiny =  0x7FFFFFFF;
-    mMaxx = -0x7FFFFFFF;
-    mMaxy = -0x7FFFFFFF;
+    mMinX8 =  0x7FFFFFFF;
+    mMinY8 =  0x7FFFFFFF;
+    mMaxX8 = -0x7FFFFFFF;
+    mMaxY8 = -0x7FFFFFFF;
     }
   //}}}
   //{{{
-  void moveTo (int32_t x, int32_t y) {
+  void moveTo (int32_t x8, int32_t y8) {
 
     if (!mSortRequired)
       reset();
 
     if (!mClosed)
-      lineTo (mClosex, mClosey);
+      lineTo (mCloseX8, mCloseY8);
 
-    setCurCell (x >> 8, y >> 8);
+    setCurCell (x8 >> 8, y8 >> 8);
 
-    mCurx = x;
-    mClosex = x;
-    mCury = y;
-    mClosey = y;
+    mCurX8 = x8;
+    mCurY8 = y8;
+    mCloseX8 = x8;
+    mCloseY8 = y8;
     }
   //}}}
   //{{{
-  void lineTo (int32_t x, int32_t y) {
+  void lineTo (int32_t x8, int32_t y8) {
 
-    if (mSortRequired && ((mCurx ^ x) | (mCury ^ y))) {
-      int c = mCurx >> 8;
-      if (c < mMinx)
-        mMinx = c;
+    if (mSortRequired && ((mCurX8 ^ x8) | (mCurY8 ^ y8))) {
+      int c = mCurX8 >> 8;
+      if (c < mMinX8)
+        mMinX8 = c;
       ++c;
-      if (c > mMaxx)
-        mMaxx = c;
+      if (c > mMaxX8)
+        mMaxX8 = c;
 
-      c = x >> 8;
-      if (c < mMinx)
-        mMinx = c;
+      c = x8 >> 8;
+      if (c < mMinX8)
+        mMinX8 = c;
       ++c;
-      if (c > mMaxx)
-        mMaxx = c;
+      if (c > mMaxX8)
+        mMaxX8 = c;
 
-      renderLine (mCurx, mCury, x, y);
-      mCurx = x;
-      mCury = y;
+      renderLine (mCurX8, mCurY8, x8, y8);
+      mCurX8 = x8;
+      mCurY8 = y8;
       mClosed = false;
       }
     }
@@ -234,76 +236,77 @@ private:
   //}}}
 
   //{{{
-  void renderScanLine (int32_t ey, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
+  void renderScanLine (int32_t ey, int32_t x81, int32_t y81, int32_t x82, int32_t y82) {
 
-    int ex1 = x1 >> 8;
-    int ex2 = x2 >> 8;
-    int fx1 = x1 & 0xFF;
-    int fx2 = x2 & 0xFF;
+    int ex1 = x81 >> 8;
+    int ex2 = x82 >> 8;
+    int fx1 = x81 & 0xFF;
+    int fx2 = x82 & 0xFF;
 
     // trivial case. Happens often
-    if (y1 == y2) {
+    if (y81 == y82) {
       setCurCell (ex2, ey);
       return;
       }
 
     // single cell
     if (ex1 == ex2) {
-      int delta = y2 - y1;
+      int delta = y82 - y81;
       mCurCell.addCoverage (delta, (fx1 + fx2) * delta);
       return;
       }
 
     // render a run of adjacent cells on the same scanLine
-    int p = (0x100 - fx1) * (y2 - y1);
+    int p = (0x100 - fx1) * (y82 - y81);
     int first = 0x100;
     int incr = 1;
-    int dx = x2 - x1;
-    if (dx < 0) {
-      p = fx1 * (y2 - y1);
+    int dx8 = x82 - x81;
+    if (dx8 < 0) {
+      p = fx1 * (y82 - y81);
       first = 0;
       incr = -1;
-      dx = -dx;
+      dx8 = -dx8;
       }
 
-    int delta = p / dx;
-    int mod = p % dx;
-    if (mod < 0) {
-      delta--;
-      mod += dx;
+    int delta8 = p / dx8;
+    int mod8 = p % dx8;
+    if (mod8 < 0) {
+      delta8--;
+      mod8 += dx8;
       }
 
-    mCurCell.addCoverage (delta, (fx1 + first) * delta);
+    mCurCell.addCoverage (delta8, (fx1 + first) * delta8);
 
     ex1 += incr;
     setCurCell (ex1, ey);
-    y1  += delta;
+    y81 += delta8;
     if (ex1 != ex2) {
-      p = 0x100 * (y2 - y1 + delta);
-      int lift = p / dx;
-      int rem = p % dx;
-      if (rem < 0) {
-        lift--;
-        rem += dx;
+      p = 0x100 * (y82 - y81 + delta8);
+      int lift8 = p / dx8;
+      int rem8 = p % dx8;
+      if (rem8 < 0) {
+        lift8--;
+        rem8 += dx8;
         }
 
-      mod -= dx;
+      mod8 -= dx8;
       while (ex1 != ex2) {
-        delta = lift;
-        mod  += rem;
-        if (mod >= 0) {
-          mod -= dx;
-          delta++;
+        delta8 = lift8;
+        mod8 += rem8;
+        if (mod8 >= 0) {
+          mod8 -= dx8;
+          delta8++;
           }
 
-        mCurCell.addCoverage (delta, (0x100) * delta);
-        y1 += delta;
+        mCurCell.addCoverage (delta8, 0x100 * delta8);
+        y81 += delta8;
         ex1 += incr;
         setCurCell (ex1, ey);
         }
       }
-    delta = y2 - y1;
-    mCurCell.addCoverage (delta, (fx2 + 0x100 - first) * delta);
+
+    delta8 = y82 - y81;
+    mCurCell.addCoverage (delta8, (fx2 + 0x100 - first) * delta8);
     }
   //}}}
   //{{{
@@ -317,14 +320,14 @@ private:
     int x_from, x_to;
     int p, rem, mod, lift, delta, first;
 
-    if (ey1   < mMiny)
-      mMiny = ey1;
-    if (ey1+1 > mMaxy)
-      mMaxy = ey1+1;
-    if (ey2   < mMiny)
-      mMiny = ey2;
-    if (ey2+1 > mMaxy)
-      mMaxy = ey2+1;
+    if (ey1 < mMinY8)
+      mMinY8 = ey1;
+    if (ey1+1 > mMaxY8)
+      mMaxY8 = ey1+1;
+    if (ey2   < mMinY8)
+      mMinY8 = ey2;
+    if (ey2+1 > mMaxY8)
+      mMaxY8 = ey2+1;
 
     int dx = x2 - x1;
     int dy = y2 - y1;
@@ -516,15 +519,15 @@ private:
   sCell mCurCell;
   sCell* mCurCellPtr = nullptr;
 
-  int32_t mCurx = 0;
-  int32_t mCury = 0;
-  int32_t mClosex = 0;
-  int32_t mClosey = 0;
+  int32_t mCurX8 = 0;
+  int32_t mCurY8 = 0;
+  int32_t mCloseX8 = 0;
+  int32_t mCloseY8 = 0;
 
-  int32_t mMinx;
-  int32_t mMiny;
-  int32_t mMaxx;
-  int32_t mMaxy;
+  int32_t mMinX8;
+  int32_t mMinY8;
+  int32_t mMaxX8;
+  int32_t mMaxY8;
 
   bool mClosed;
   bool mSortRequired;
@@ -566,21 +569,18 @@ public:
     }
   //}}}
 
-  int16_t getY() const { return mLastY; }
-  int16_t getBaseX() const { return mMinx;  }
+  int16_t getY() const { return mLast.y; }
+  int16_t getBaseX() const { return mMinX;  }
   uint16_t getNumSpans() const { return mNumSpans; }
-  int isReady (int16_t y) const { return mNumSpans && (y ^ mLastY); }
+  int isReady (int16_t y) const { return mNumSpans && (y ^ mLast.y); }
 
   //{{{
   void resetSpans() {
 
     mNumSpans = 0;
-
     mCurCount = mCounts;
     mCurStartPtr = mStartPtrs;
-
-    mLastX = 0x7FFF;
-    mLastY = 0x7FFF;
+    mLast = {0x7FFF, 0x7FFF };
     }
   //}}}
   //{{{
@@ -600,35 +600,51 @@ public:
       mStartPtrs = (uint8_t**)pvPortMalloc (maxLen * 4);
       }
 
-    mMinx = minx;
+    mMinX = minx;
     resetSpans();
     }
   //}}}
 
   //{{{
-  void addSpan (int16_t x, int16_t y, uint16_t num, uint16_t coverage) {
+  void addPixel (cPoint p, uint16_t coverage) {
 
-    x -= mMinx;
+    p.x -= mMinX;
 
-    memset (mCoverage + x, coverage, num);
-    if (x == mLastX+1)
-      (*mCurCount) += (uint16_t)num;
+    *(mCoverage + p.x) = coverage;
+    if (p.x == mLast.x + 1)
+      *mCurCount += 1;
     else {
-      *++mCurCount = (uint16_t)num;
-      *++mCurStartPtr = mCoverage + x;
+      *++mCurCount = 1;
+      *++mCurStartPtr = mCoverage + p.x;
       mNumSpans++;
       }
 
-    mLastX = x + num - 1;
-    mLastY = y;
+    mLast = p;
+    }
+  //}}}
+  //{{{
+  void addSpan (cPoint p, uint16_t num, uint16_t coverage) {
+
+    p.x -= mMinX;
+
+    memset (mCoverage + p.x, coverage, num);
+    if (p.x == mLast.x + 1)
+      (*mCurCount) += (uint16_t)num;
+    else {
+      *++mCurCount = (uint16_t)num;
+      *++mCurStartPtr = mCoverage + p.x;
+      mNumSpans++;
+      }
+
+    mLast = p;
+    mLast.x += num - 1;
     }
   //}}}
 
 private:
-  int16_t mMinx = 0;
+  int16_t mMinX = 0;
   uint16_t mMaxlen = 0;
-  int16_t mLastX = 0x7FFF;
-  int16_t mLastY = 0x7FFF;
+  cPoint mLast;
 
   uint8_t* mCoverage = nullptr;
 
@@ -644,7 +660,7 @@ private:
 //{{{
 class cFontChar {
 public:
-  void* operator new (std::size_t size) { return pvPortMalloc (size); }
+  void* operator new (size_t size) { return pvPortMalloc (size); }
   void operator delete (void* ptr) { vPortFree (ptr); }
 
   uint8_t* bitmap;
@@ -709,7 +725,7 @@ cLcd::~cLcd() {
   }
 //}}}
 //{{{
-void cLcd::init (const std::string& title) {
+void cLcd::init (const string& title) {
 
   FT_Init_FreeType (&FTlibrary);
   FT_New_Memory_Face (FTlibrary, (FT_Byte*)freeSansBold, sizeof (freeSansBold), 0, &FTface);
@@ -771,7 +787,7 @@ void cLcd::setShowInfo (bool show) {
   }
 //}}}
 //{{{
-void cLcd::info (const sRgba colour, const std::string& str) {
+void cLcd::info (const sRgba colour, const string& str) {
 
   uint16_t line = mCurLine++ % kMaxLines;
   mLines[line].mTime = HAL_GetTick();
@@ -875,7 +891,7 @@ void cLcd::ellipse (const sRgba colour, cPoint centre, cPoint radius) {
   }
 //}}}
 //{{{
-int cLcd::text (const sRgba colour, uint16_t fontHeight, const std::string& str, cRect r) {
+int cLcd::text (const sRgba colour, uint16_t fontHeight, const string& str, cRect r) {
 
   ready();
   DMA2D->FGPFCCR = (colour.getA() < 255) ? ((colour.getA() << 24) | 0x20000 | DMA2D_INPUT_A8) : DMA2D_INPUT_A8;
@@ -1132,13 +1148,12 @@ void cLcd::aRender (const sRgba colour, bool fillNonZero) {
     return;
 
   mNumStamps = 0;
-  mScanLine.reset (mOutline.getMinx(), mOutline.getMaxx());
+  mScanLine.reset (mOutline.getMinX(), mOutline.getMaxX());
 
   int coverage = 0;
   const sCell* cell = *sortedCells++;
   while (true) {
-    int x = cell->mPackedCoord & 0xFFFF;
-    int y = cell->mPackedCoord >> 16;
+    cPoint p (cell->mPackedCoord & 0xFFFF, cell->mPackedCoord >> 16);
     int packedCoord = cell->mPackedCoord;
     int area = cell->mArea;
     coverage += cell->mCoverage;
@@ -1154,26 +1169,26 @@ void cLcd::aRender (const sRgba colour, bool fillNonZero) {
     if (area) {
       uint8_t alpha = calcAlpha ((coverage << 9) - area, fillNonZero);
       if (alpha) {
-        if (mScanLine.isReady (y)) {
+        if (mScanLine.isReady (p.y)) {
           renderScanLine (&mScanLine, colour);
           mScanLine.resetSpans();
           }
-        mScanLine.addSpan (x, y, 1, mGamma[alpha]);
+        mScanLine.addPixel (p, mGamma[alpha]);
         }
-      x++;
+      p.x++;
       }
 
     if (!cell)
       break;
 
-    if (int16_t(cell->mPackedCoord & 0xFFFF) > x) {
+    if (int16_t(cell->mPackedCoord & 0xFFFF) > p.x) {
       uint8_t alpha = calcAlpha (coverage << 9, fillNonZero);
       if (alpha) {
-        if (mScanLine.isReady (y)) {
+        if (mScanLine.isReady (p.y)) {
            renderScanLine (&mScanLine, colour);
            mScanLine.resetSpans();
            }
-         mScanLine.addSpan (x, y, int16_t(cell->mPackedCoord & 0xFFFF) - x, mGamma[alpha]);
+         mScanLine.addSpan (p, int16_t(cell->mPackedCoord & 0xFFFF) - p.x, mGamma[alpha]);
          }
       }
     }
@@ -1516,8 +1531,7 @@ cFontChar* cLcd::loadChar (uint16_t fontHeight, char ch) {
     memcpy (fontChar->bitmap, FTglyphSlot->bitmap.buffer, FTglyphSlot->bitmap.pitch * FTglyphSlot->bitmap.rows);
     }
 
-  return mFontCharMap.insert (
-    std::map<uint16_t, cFontChar*>::value_type (fontHeight<<8 | ch, fontChar)).first->second;
+  return mFontCharMap.insert (map<uint16_t, cFontChar*>::value_type (fontHeight<<8 | ch, fontChar)).first->second;
   }
 //}}}
 
