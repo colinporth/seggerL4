@@ -90,7 +90,7 @@ void clockConfig120Mhz() {
 void uiThread (void* arg) {
 
   gLcd->tftInit();
-  gLcd->display (70);
+  gLcd->display (100);
 
   while (true) {
     if (gLcd->isChanged() || (gLcd->getPresentTime() >= 1000)) {
@@ -171,6 +171,7 @@ void appThread (void* arg) {
 
   gTouch->init();
   cPointF offset;
+  int brightness = 100;
 
   while (true) {
     gTouch->start();
@@ -179,6 +180,8 @@ void appThread (void* arg) {
     if (gTouch->getState() == cTouch::ePress) {
       if (gTouch->getPressed()) {
         if (mMove == eNotPressed) {
+          brightness = 100;
+          gLcd->display (brightness);
           if ((mCentre - gTouch->getTouch()).magnitude() < mRadius-4.f) {
             mMove = eMoveCentre;
             offset = gTouch->getTouch() - mCentre;
@@ -199,6 +202,8 @@ void appThread (void* arg) {
         }
       else {
         mMove = eNotPressed;
+        if (brightness > 0)
+          gLcd->display (brightness--);
         vTaskDelay (50);
         }
       }

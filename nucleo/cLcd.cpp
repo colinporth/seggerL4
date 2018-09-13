@@ -1308,6 +1308,7 @@ void cLcd::size (cTile* tile, const cRect& r) {
 void cLcd::display (int brightness) {
 
   mBrightness = brightness;
+  TIM4->CCR2 = 50 * brightness;
   }
 //}}}
 //{{{
@@ -1390,14 +1391,52 @@ void cLcd::present() {
 //{{{
 void cLcd::tftInit() {
 
-  //{{{  clock config
+  //{{{  clocks
   __HAL_RCC_FMC_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
   //}}}
+  //{{{  pb7 adj tim4 PWM 
+  __HAL_RCC_TIM4_CLK_ENABLE();
+
+  GPIO_InitTypeDef gpio_init_structure;
+  gpio_init_structure.Mode = GPIO_MODE_AF_PP;
+  gpio_init_structure.Pull = GPIO_NOPULL;
+  gpio_init_structure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  gpio_init_structure.Alternate = GPIO_AF2_TIM4;
+  gpio_init_structure.Pin = GPIO_PIN_7;
+  HAL_GPIO_Init (GPIOB, &gpio_init_structure);
+
+  //  config TIM4 chan2 PWM to PD13
+  TIM_HandleTypeDef mTimHandle;
+  mTimHandle.Instance = TIM4;
+  mTimHandle.Init.Period = 5000 - 1;
+  mTimHandle.Init.Prescaler = 1;
+  mTimHandle.Init.ClockDivision = 0;
+  mTimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
+
+  if (HAL_TIM_Base_Init (&mTimHandle))
+    printf ("HAL_TIM_Base_Init failed\n");
+
+  // init timOcInit
+  TIM_OC_InitTypeDef timOcInit = {0};
+  timOcInit.OCMode = TIM_OCMODE_PWM1;
+  timOcInit.OCPolarity = TIM_OCPOLARITY_HIGH;
+  timOcInit.OCFastMode = TIM_OCFAST_DISABLE;
+  timOcInit.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  timOcInit.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  timOcInit.OCIdleState = TIM_OCIDLESTATE_RESET;
+  timOcInit.Pulse = 50 * mBrightness;
+
+  if (HAL_TIM_PWM_ConfigChannel (&mTimHandle, &timOcInit, TIM_CHANNEL_2))
+    printf ("HAL_TIM_PWM_ConfigChannel tim4 ch2 fail\n");
+
+  if (HAL_TIM_PWM_Start (&mTimHandle, TIM_CHANNEL_2))
+    printf ("HAL_TIM_PWM_Start tim4 ch2 fail\n");
+  //}}}
 
   // gpio config
-  GPIO_InitTypeDef gpio_init_structure;
   gpio_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
   gpio_init_structure.Pull = GPIO_NOPULL;
   gpio_init_structure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
