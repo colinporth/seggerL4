@@ -28,8 +28,6 @@ cPointF mCentre = cPointF (160.f, 240.f);
 enum eMove { eNotPressed, ePressed, eMoveCentre, eMoveRadius};
 eMove mMove = eNotPressed;
 //}}}
-extern "C" { void ADC1_IRQHandler() { gTouch->irqHandler(); } }
-void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) { gTouch->converted(); }
 
 //{{{
 void clockConfig120Mhz() {

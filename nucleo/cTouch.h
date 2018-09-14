@@ -265,3 +265,6 @@ private:
   };
 
 cTouch* cTouch::mTouch = nullptr;
+
+extern "C" { void ADC1_IRQHandler() { cTouch::mTouch->irqHandler(); } }
+void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) { cTouch::mTouch->converted(); }
