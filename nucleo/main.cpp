@@ -115,13 +115,13 @@ void uiThread (void* arg) {
 
       if (gTouch->getPressed()) {
         //{{{  touch radius and string
-        gLcd->aEllipse (gTouch->getTouch(), cPointF (16.f,16.f), 32);
+        gLcd->aEllipse (gTouch->getPos(), cPointF (16.f,16.f), 32);
         gLcd->aRender (kYellow, false);
 
         gLcd->text (kWhite, 22,
                     dec (gTouch->getValueX(),4,' ') + "," + dec (gTouch->getValueY(), 4, ' ') + " " +
-                    dec (int(gTouch->getTouch().x)) + "." + dec (int(gTouch->getTouch().x * 10) % 10, 1,'0') + "," +
-                    dec (int(gTouch->getTouch().y)) + "." + dec (int(gTouch->getTouch().y * 10) % 10, 1,'0'),
+                    dec (int(gTouch->getPos().x)) + "." + dec (int(gTouch->getPos().x * 10) % 10, 1,'0') + "," +
+                    dec (int(gTouch->getPos().y)) + "." + dec (int(gTouch->getPos().y * 10) % 10, 1,'0'),
                     cRect (0, 20, 320, 42));
         }
         //}}}
@@ -182,20 +182,20 @@ void appThread (void* arg) {
         if (mMove == eNotPressed) {
           brightness = 100;
           gLcd->display (brightness);
-          if ((mCentre - gTouch->getTouch()).magnitude() < mRadius-4.f) {
+          if ((mCentre - gTouch->getPos()).magnitude() < mRadius-4.f) {
             mMove = eMoveCentre;
-            offset = gTouch->getTouch() - mCentre;
+            offset = gTouch->getPos() - mCentre;
             }
-          else if ((mCentre - gTouch->getTouch()).magnitude() < mRadius+24.f)
+          else if ((mCentre - gTouch->getPos()).magnitude() < mRadius+24.f)
             mMove = eMoveRadius;
           else
             mMove = ePressed;
           }
 
         if (mMove == eMoveCentre)
-          mCentre = gTouch->getTouch() - offset;
+          mCentre = gTouch->getPos() - offset;
         else if (mMove == eMoveRadius)
-          mRadius = (mCentre - gTouch->getTouch()).magnitude();
+          mRadius = (mCentre - gTouch->getPos()).magnitude();
 
         gLcd->change();
         vTaskDelay (1);

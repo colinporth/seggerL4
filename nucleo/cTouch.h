@@ -20,7 +20,7 @@ class cTouch {
 public:
   enum eState { ePress, eReadX, eReadY };
 
-  cTouch (cPoint size) : mSize(size) {}
+  cTouch (cPoint size) : mSize(size) { mTouch = this; }
   //{{{
   void init() {
 
@@ -62,7 +62,7 @@ public:
 
   eState getState() { return mState; }
   bool getPressed() { return mPressed; }
-  cPointF getTouch() { return mTouch; }
+  cPointF getPos() { return mPos; }
 
   uint16_t getValueX() { return xValue; }
   uint16_t getValueY() { return yValue; }
@@ -110,8 +110,8 @@ public:
       case eReadY:
         //  read Y, select press
         yValue = yFilter.getAverageMedianValue (value);
-        mTouch.y = ((yValue - YSTART) * mSize.y) / float(YEND - YSTART);
-        mTouch.x = ((xValue - XSTART) * mSize.x) / float(XEND - XSTART);
+        mPos.y = ((yValue - YSTART) * mSize.y) / float(YEND - YSTART);
+        mPos.x = ((xValue - XSTART) * mSize.x) / float(XEND - XSTART);
         mPressed = true;
 
         selectConversion (ePress);
@@ -124,7 +124,7 @@ public:
     mConverted = true;
     }
   //}}}
-
+  //{{{  more adc
   //{{{  rank1 vrefint
   //sConfig.Channel = ADC_CHANNEL_VREFINT;
   //sConfig.Rank = ADC_REGULAR_RANK_1;
@@ -148,6 +148,8 @@ public:
   //if (HAL_ADC_ConfigChannel (&mAdcHandle, &sConfig) != HAL_OK)
     //printf ("HAL_ADC_Init failed\n");
   //}}}
+  //}}}
+  static cTouch* mTouch;
 
 private:
   //{{{
@@ -239,7 +241,7 @@ private:
     mState = state;
     }
   //}}}
-
+  //{{{  vars
   ADC_HandleTypeDef mAdcHandle;
 
   const cPoint mSize;
@@ -251,7 +253,7 @@ private:
 
   cFilter xFilter;
   cFilter yFilter;
-  cPointF mTouch;
+  cPointF mPos;
   volatile bool mPressed = false;
 
   uint16_t vRefIntValueCalibrated = 0;
@@ -259,4 +261,7 @@ private:
   //volatile uint16_t vBatValue = 0;
   //volatile uint16_t v5vValue = 0;
   //SemaphoreHandle_t mConvertedSem;
+  //}}}
   };
+
+cTouch* cTouch::mTouch = nullptr;
