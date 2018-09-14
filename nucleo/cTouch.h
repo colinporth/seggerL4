@@ -18,8 +18,6 @@
 
 class cTouch {
 public:
-  enum eState { ePress, eReadX, eReadY };
-
   cTouch (cPoint size) : mSize(size) { mTouch = this; }
   //{{{
   void init() {
@@ -60,10 +58,11 @@ public:
     }
   //}}}
 
-  eState getState() { return mState; }
   bool getPressed() { return mPressed; }
   cPointF getPos() { return mPos; }
 
+  enum eState { ePress, eReadX, eReadY };
+  eState getState() { return mState; }
   uint16_t getValueX() { return xValue; }
   uint16_t getValueY() { return yValue; }
 
@@ -264,7 +263,20 @@ private:
   //}}}
   };
 
+// static var init
 cTouch* cTouch::mTouch = nullptr;
 
-extern "C" { void ADC1_IRQHandler() { cTouch::mTouch->irqHandler(); } }
-void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) { cTouch::mTouch->converted(); }
+// HAL routing
+//{{{
+extern "C" { void ADC1_IRQHandler() {
+  if (cTouch::mTouch)
+    cTouch::mTouch->irqHandler();
+    }
+  }
+//}}}
+//{{{
+void HAL_ADC_ConvCpltCallback (ADC_HandleTypeDef* adcHandle) {
+  if (cTouch::mTouch)
+    cTouch::mTouch->converted();
+  }
+//}}}

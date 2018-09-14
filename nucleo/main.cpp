@@ -136,7 +136,7 @@ void uiThread (void* arg) {
       gLcd->aEllipse (c, cPointF(r-4.f, r), 64);
       gLcd->aRender (mMove == eMoveCentre ? kGrey : sRgba (128,128,128, 192), false);
 
-      gLcd->aEllipseOutline (c, cPointF(r, r), 4.f, 64);
+      gLcd->aEllipseOutline (c, cPointF(r, r), 4.f, gTouch->getPressed() ? 16 : 64);
       gLcd->aRender (mMove == eMoveRadius ? kWhite : sRgba (180,180,0, 255), false);
 
       float handWidth = r > 60.f ? r / 20.f : 3.f;
@@ -167,7 +167,6 @@ void uiThread (void* arg) {
 //{{{
 void appThread (void* arg) {
 
-  gTouch->init();
   cPointF offset;
   int brightness = 100;
 
@@ -201,7 +200,7 @@ void appThread (void* arg) {
       else {
         mMove = eNotPressed;
         if (brightness > 0)
-          gLcd->display (brightness--);
+          gLcd->display (--brightness);
         vTaskDelay (50);
         }
       }
@@ -224,6 +223,7 @@ int main() {
   gLcd->init (kHello);
 
   gTouch = new cTouch (gLcd->getSize());
+  gTouch->init();
 
   TaskHandle_t uiHandle;
   xTaskCreate ((TaskFunction_t)uiThread, "ui", 4096, 0, 4, &uiHandle);
