@@ -35,50 +35,6 @@ extern "C" { void I2C4_ER_IRQHandler() { HAL_I2C_ER_IRQHandler (&I2cHandle); } }
 
 #define WHO_AM_I_MPU9250  0x75  // Should return 0x71
 #define MPU9250_ADDRESS   0x68<<1  // Device address when ADO = 0
-//{{{
-void mpu2950init() {
-
-  __HAL_RCC_GPIOF_CLK_ENABLE();
-  __HAL_RCC_I2C4_CLK_ENABLE();
-
-  // gpio init
-  GPIO_InitTypeDef  GPIO_InitStruct;
-  GPIO_InitStruct.Pin = GPIO_PIN_14 | GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF4_I2C4;
-  HAL_GPIO_Init (GPIOF, &GPIO_InitStruct);
-
-  // i2c init
-  I2cHandle.Instance = I2C4;
-  I2cHandle.Init.Timing = 0x20601138;
-  I2cHandle.Init.OwnAddress1 = 0;
-  I2cHandle.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  I2cHandle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  I2cHandle.Init.OwnAddress2 = 0;
-  I2cHandle.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  I2cHandle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  I2cHandle.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init (&I2cHandle) != HAL_OK)
-    printf ("HAL_I2C_Init error\n");
-
-  HAL_NVIC_SetPriority (I2C4_ER_IRQn, 0, 1);
-  HAL_NVIC_EnableIRQ (I2C4_ER_IRQn);
-  HAL_NVIC_SetPriority (I2C4_EV_IRQn, 0, 2);
-  HAL_NVIC_EnableIRQ (I2C4_EV_IRQn);
-
-  HAL_I2CEx_ConfigAnalogFilter (&I2cHandle, I2C_ANALOGFILTER_ENABLE);
-
-  uint8_t value = WHO_AM_I_MPU9250;
-  if (HAL_I2C_Master_Transmit (&I2cHandle, MPU9250_ADDRESS, &value, 1, 10000) != HAL_OK)
-    printf ("m2950init id tx error\n");
-  if (HAL_I2C_Master_Receive (&I2cHandle, MPU9250_ADDRESS, &value, 1, 10000) != HAL_OK)
-    printf ("m2950init id rx error\n");
-  else
-    printf ("whoami la %x\n", value);
-  }
-//}}}
 #include "MPU9250.h"
 
 //{{{
@@ -221,7 +177,7 @@ void appThread (void* arg) {
 
   MPU9250 mpu9250;
 
-  mpu2950init();
+  mpu9250.init();
   mpu9250.resetMPU9250(); // Reset registers to default in preparation for device calibration
   mpu9250.calibrateMPU9250 (gyroBias, accelBias); // Calibrate gyro and accelerometers, load biases in bias registers
   printf ("x gyro bias = %f\n", gyroBias[0]);
@@ -239,13 +195,13 @@ void appThread (void* arg) {
   printf ("AK8963 initialized for active data mode....\n"); // Initialize device for active mode read of magnetometer
   printf ("Accelerometer full-scale range = %f  g\n", 2.0f*(float)(1<<Ascale));
   printf ("Gyroscope full-scale range = %f  deg/s\n", 250.0f*(float)(1<<Gscale));
-  if(Mscale == 0)
+  if (Mscale == 0)
     printf ("Magnetometer resolution = 14  bits\n");
-  if(Mscale == 1)
+  if (Mscale == 1)
     printf ("Magnetometer resolution = 16  bits\n");
-  if(Mmode == 2)
+  if (Mmode == 2)
     printf ("Magnetometer ODR = 8 Hz\n");
-  if(Mmode == 6)
+  if (Mmode == 6)
     printf ("Magnetometer ODR = 100 Hz\n");
   vTaskDelay (2000);
 
@@ -297,7 +253,7 @@ void appThread (void* arg) {
     printf ("gx = %f gy = %f gz = %f deg/s\n", gx, gy, gz);
     printf ("mx = %f my = %f mz = %f mG\n", mx, my, mz);
 
-    tempCount = mpu9250.readTempData();  // Read the adc values
+    auto tempCount = mpu9250.readTempData();  // Read the adc values
     temperature = ((float)tempCount) / 333.87f + 21.0f; // Temperature in degrees Centigrade
     printf (" temperature = %f  C\n", temperature);
 
