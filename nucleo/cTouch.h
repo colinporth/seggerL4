@@ -46,7 +46,7 @@ public:
     mAdcHandle.Init.Overrun               = ADC_OVR_DATA_OVERWRITTEN;
     mAdcHandle.Init.OversamplingMode      = DISABLE;
     if (HAL_ADC_Init (&mAdcHandle) != HAL_OK)
-      printf ("HAL_ADC_Init failed\n");
+      printf ("init HAL_ADC_Init failed\n");
 
     HAL_NVIC_SetPriority (ADC1_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ (ADC1_IRQn);
@@ -235,7 +235,7 @@ private:
       }
 
     if (HAL_ADC_ConfigChannel (&mAdcHandle, &sConfig) != HAL_OK)
-      printf ("HAL_ADC_Init failed\n");
+      printf ("selectConversion HAL_ADC_Init failed\n");
 
     mState = state;
     }

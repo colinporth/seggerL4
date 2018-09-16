@@ -1397,7 +1397,7 @@ void cLcd::tftInit() {
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
   //}}}
-  //{{{  pb7 adj tim4 PWM 
+  //{{{  pb7 adj tim4 PWM
   __HAL_RCC_TIM4_CLK_ENABLE();
 
   GPIO_InitTypeDef gpio_init_structure;
