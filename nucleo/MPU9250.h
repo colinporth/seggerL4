@@ -501,7 +501,7 @@ public:
     writeByte (MPU9250_ADDRESS, ACCEL_CONFIG2, 0x02); // Set accelerometer rate to 1 kHz and bandwidth to 92 Hz
     writeByte (MPU9250_ADDRESS, ACCEL_CONFIG, FS<<3); // Set full scale range for the accelerometer to 2 g
 
-    for( int ii = 0; ii < 200; ii++) { 
+    for( int ii = 0; ii < 200; ii++) {
       // get average current values of gyro and acclerometer
       readBytes (MPU9250_ADDRESS, ACCEL_XOUT_H, 6, &rawData[0]); // Read the six raw data registers into data array
       aAvg[0] += (int16_t)(((int16_t)rawData[0] << 8) | rawData[1]) ; // Turn the MSB and LSB into a signed 16-bit value
@@ -514,7 +514,7 @@ public:
       gAvg[2] += (int16_t)(((int16_t)rawData[4] << 8) | rawData[5]) ;
       }
 
-    for (int ii =0; ii < 3; ii++) { 
+    for (int ii =0; ii < 3; ii++) {
       // Get average of 200 values and store as average current readings
       aAvg[ii] /= 200;
       gAvg[ii] /= 200;
@@ -539,7 +539,7 @@ public:
       }
       //}}}
 
-    for (int ii =0; ii < 3; ii++) { 
+    for (int ii =0; ii < 3; ii++) {
       // Get average of 200 values and store as average self-test readings
       aSTAvg[ii] /= 200;
       gSTAvg[ii] /= 200;
@@ -641,6 +641,18 @@ public:
         aRes = 16.0/32768.0;
         break;
       }
+    }
+  //}}}
+  //{{{
+  uint8_t getIntStatus() {
+
+    // x/y/z gyro register data stored here
+    uint8_t rawData;
+
+    // Read the raw data register
+    readBytes (MPU9250_ADDRESS, INT_STATUS, 1, &rawData);
+
+    return rawData;
     }
   //}}}
 
@@ -746,7 +758,8 @@ public:
 
     // Normalise accelerometer measurement
     norm = sqrt(ax * ax + ay * ay + az * az);
-    if (norm == 0.0f) return; // handle NaN
+    if (norm == 0.0f)
+      return; // handle NaN
     norm = 1.0f/norm;
     ax *= norm;
     ay *= norm;
@@ -754,7 +767,8 @@ public:
 
     // Normalise magnetometer measurement
     norm = sqrt(mx * mx + my * my + mz * mz);
-    if (norm == 0.0f) return; // handle NaN
+    if (norm == 0.0f)
+     return; // handle NaN
     norm = 1.0f/norm;
     mx *= norm;
     my *= norm;

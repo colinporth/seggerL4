@@ -33,10 +33,8 @@ static I2C_HandleTypeDef I2cHandle;
 extern "C" { void I2C4_EV_IRQHandler() { HAL_I2C_EV_IRQHandler (&I2cHandle); } }
 extern "C" { void I2C4_ER_IRQHandler() { HAL_I2C_ER_IRQHandler (&I2cHandle); } }
 
-#define WHO_AM_I_MPU9250  0x75  // Should return 0x71
-#define MPU9250_ADDRESS   0x68<<1  // Device address when ADO = 0
 #include "MPU9250.h"
-
+uint32_t took = 0;
 //{{{
 void clockConfig120Mhz() {
 // System Clock source = PLL (MSI)
@@ -133,37 +131,53 @@ void uiThread (void* arg) {
         //}}}
 
       //{{{  clock
-      float hourA;
-      float minuteA;
-      float secondA;
-      float subSecondA;
-      gRtc->getClockAngles (hourA, minuteA, secondA, subSecondA);
+      //float hourA;
+      //float minuteA;
+      //float secondA;
+      //float subSecondA;
+      //gRtc->getClockAngles (hourA, minuteA, secondA, subSecondA);
 
-      auto r = mRadius;
-      auto c = mCentre;
-      gLcd->aEllipse (c, cPointF(r-4.f, r), 64);
-      gLcd->aRender (mMove == eMoveCentre ? kGrey : sRgba (128,128,128, 192), false);
+      //auto r = mRadius;
+      //auto c = mCentre;
+      //gLcd->aEllipse (c, cPointF(r-4.f, r), 64);
+      //gLcd->aRender (mMove == eMoveCentre ? kGrey : sRgba (128,128,128, 192), false);
 
-      gLcd->aEllipseOutline (c, cPointF(r, r), 4.f, gTouch->getPressed() ? 16 : 64);
-      gLcd->aRender (mMove == eMoveRadius ? kWhite : sRgba (180,180,0, 255), false);
+      //gLcd->aEllipseOutline (c, cPointF(r, r), 4.f, gTouch->getPressed() ? 16 : 64);
+      //gLcd->aRender (mMove == eMoveRadius ? kWhite : sRgba (180,180,0, 255), false);
 
-      float handWidth = r > 60.f ? r / 20.f : 3.f;
-      float hourR = r * 0.75f;
-      gLcd->aPointedLine (c, c + cPointF (hourR * sin (hourA), hourR * cos (hourA)), handWidth);
-      float minuteR = r * 0.9f;
-      gLcd->aPointedLine (c, c + cPointF (minuteR * sin (minuteA), minuteR * cos (minuteA)), handWidth);
-      gLcd->aRender (kWhite);
+      //float handWidth = r > 60.f ? r / 20.f : 3.f;
+      //float hourR = r * 0.75f;
+      //gLcd->aPointedLine (c, c + cPointF (hourR * sin (hourA), hourR * cos (hourA)), handWidth);
+      //float minuteR = r * 0.9f;
+      //gLcd->aPointedLine (c, c + cPointF (minuteR * sin (minuteA), minuteR * cos (minuteA)), handWidth);
+      //gLcd->aRender (kWhite);
 
-      float secondR = r * 0.95f;
-      gLcd->aPointedLine (c, c + cPointF (secondR * sin (secondA), secondR * cos (secondA)), handWidth);
-      gLcd->aRender (sRgba (255,0,0, 180));
+      //float secondR = r * 0.95f;
+      //gLcd->aPointedLine (c, c + cPointF (secondR * sin (secondA), secondR * cos (secondA)), handWidth);
+      //gLcd->aRender (sRgba (255,0,0, 180));
 
-      //float subSecondR = r * 0.95f;
-      //gLcd->aPointedLine (c, c + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
-      //gLcd->aRender (sRgba (255,255,0, 128));
+      ////float subSecondR = r * 0.95f;
+      ////gLcd->aPointedLine (c, c + cPointF (minuteR * sin (subSecondA), minuteR * cos (subSecondA)), 3.f);
+      ////gLcd->aRender (sRgba (255,255,0, 128));
       //}}}
       gLcd->text (kWhite, 30, gRtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
 
+      gLcd->text (kWhite, 20,
+        dec (int(ax*1000.f),5,'0') + " " + dec (int(ay*1000.f),5,'0') + " " + dec (int(az*1000.f),5,'0') + " " + dec (took),
+        cRect (0, 42, 320, 62));
+      gLcd->text (kWhite, 20,
+        dec (int(gx*1000.f),5,'0') + " " + dec (int(gy*1000.f),5,'0') + " " + dec (int(gz*1000.f),5,'0'),
+        cRect (0, 62, 320, 82));
+      gLcd->text (kWhite, 20,
+        dec (int(mx),5,'0') + " " + dec (int(my),5,'0') + " " + dec (int(mz),5,'0'),
+        cRect (0, 82, 320, 102));
+      gLcd->text (kWhite, 20,
+        dec (int(yaw),5,'0') + " " + dec (int(pitch),5,'0') + " " + dec (int(roll),5,'0'),
+        cRect (0, 102, 320, 122));
+      //printf ("q0 = %f q1 = %f q2 = %f q3 = %f\n", q[0], q[1], q[2], q[3]);
+      //auto tempCount = mpu9250.readTempData();  // Read the adc values
+      //temperature = ((float)tempCount) / 333.87f + 21.f; // Temperature in degrees Centigrade
+      //printf ("temperature = %f  C\n", temperature);
       gLcd->present();
       }
 
@@ -180,21 +194,20 @@ void appThread (void* arg) {
   mpu9250.init();
   mpu9250.resetMPU9250(); // Reset registers to default in preparation for device calibration
   mpu9250.calibrateMPU9250 (gyroBias, accelBias); // Calibrate gyro and accelerometers, load biases in bias registers
-  printf ("x gyro bias = %f\n", gyroBias[0]);
-  printf ("y gyro bias = %f\n", gyroBias[1]);
-  printf  ("z gyro bias = %f\n", gyroBias[2]);
-  printf ("x accel bias = %f\n", accelBias[0]);
-  printf ("y accel bias = %f\n", accelBias[1]);
-  printf ("z accel bias = %f\n", accelBias[2]);
-  vTaskDelay (2000);
+  printf ("x gyro bias %f\n", gyroBias[0]);
+  printf ("y gyro bias %f\n", gyroBias[1]);
+  printf ("z gyro bias %f\n", gyroBias[2]);
+  printf ("x accel bias %f\n", accelBias[0]);
+  printf ("y accel bias %f\n", accelBias[1]);
+  printf ("z accel bias %f\n", accelBias[2]);
 
   mpu9250.initMPU9250();
   printf("MPU9250 initialized for active data mode....\n"); // Initialize device for active mode read of acclerometer, gyroscope, and temperature
 
   mpu9250.initAK8963 (magCalibration);
   printf ("AK8963 initialized for active data mode....\n"); // Initialize device for active mode read of magnetometer
-  printf ("Accelerometer full-scale range = %f  g\n", 2.0f*(float)(1<<Ascale));
-  printf ("Gyroscope full-scale range = %f  deg/s\n", 250.0f*(float)(1<<Gscale));
+  printf ("Accelerometer full-scale range = %f  g\n", 2.f * (float)(1 << Ascale));
+  printf ("Gyroscope full-scale range = %f  deg/s\n", 250.f * (float)(1 << Gscale));
   if (Mscale == 0)
     printf ("Magnetometer resolution = 14  bits\n");
   if (Mscale == 1)
@@ -203,81 +216,82 @@ void appThread (void* arg) {
     printf ("Magnetometer ODR = 8 Hz\n");
   if (Mmode == 6)
     printf ("Magnetometer ODR = 100 Hz\n");
-  vTaskDelay (2000);
-
 
   mpu9250.getAres(); // Get accelerometer sensitivity
   mpu9250.getGres(); // Get gyro sensitivity
   mpu9250.getMres(); // Get magnetometer sensitivity
-  printf ("Accelerometer sensitivity is %f LSB/g \n", 1.0f/aRes);
-  printf ("Gyroscope sensitivity is %f LSB/deg/s \n", 1.0f/gRes);
-  printf ("Magnetometer sensitivity is %f LSB/G \n", 1.0f/mRes);
+  printf ("Accelerometer sensitivity is %f LSB/g \n", 1.f/aRes);
+  printf ("Gyroscope sensitivity is %f LSB/deg/s \n", 1.f/gRes);
+  printf ("Magnetometer sensitivity is %f LSB/G \n", 1.f/mRes);
+
   magbias[0] = +470.;  // User environmental x-axis correction in milliGauss, should be automatically calculated
   magbias[1] = +120.;  // User environmental x-axis correction in milliGauss
   magbias[2] = +125.;  // User environmental x-axis correction in milliGauss
 
+  uint32_t lastTicks = HAL_GetTick();
   while (true) {
-    vTaskDelay (100);
-    // If intPin goes high, all data registers have new data
-    //if(mpu9250.readByte(MPU9250_ADDRESS, INT_STATUS) & 0x01) {  // On interrupt, check if data ready interrupt
+    if (mpu9250.getIntStatus() & 0x01) {
+      took = HAL_GetTick() - lastTicks;
+      lastTicks = HAL_GetTick();
+      deltat = took / 1000.f;
 
-    mpu9250.readAccelData(accelCount);  // Read the x/y/z adc values
-    // Now we'll calculate the accleration value into actual g's
-    ax = (float)accelCount[0]*aRes - accelBias[0];  // get actual g value, this depends on scale being set
-    ay = (float)accelCount[1]*aRes - accelBias[1];
-    az = (float)accelCount[2]*aRes - accelBias[2];
+      mpu9250.readAccelData (accelCount);  // Read the x/y/z adc values
+      // Now we'll calculate the accleration value into actual g's
+      ax = (float)accelCount[0]*aRes - accelBias[0];  // get actual g value, this depends on scale being set
+      ay = (float)accelCount[1]*aRes - accelBias[1];
+      az = (float)accelCount[2]*aRes - accelBias[2];
 
-    mpu9250.readGyroData(gyroCount);  // Read the x/y/z adc values
-    // Calculate the gyro value into actual degrees per second
-    gx = (float)gyroCount[0]*gRes - gyroBias[0];  // get actual gyro value, this depends on scale being set
-    gy = (float)gyroCount[1]*gRes - gyroBias[1];
-    gz = (float)gyroCount[2]*gRes - gyroBias[2];
+      mpu9250.readGyroData (gyroCount);  // Read the x/y/z adc values
+      // Calculate the gyro value into actual degrees per second
+      gx = (float)gyroCount[0]*gRes - gyroBias[0];  // get actual gyro value, this depends on scale being set
+      gy = (float)gyroCount[1]*gRes - gyroBias[1];
+      gz = (float)gyroCount[2]*gRes - gyroBias[2];
 
-    mpu9250.readMagData(magCount);  // Read the x/y/z adc values
-    // Calculate the magnetometer values in milliGauss
-    // Include factory calibration per data sheet and user environmental corrections
-    mx = (float)magCount[0]*mRes*magCalibration[0] - magbias[0];  // get actual magnetometer value, this depends on scale being set
-    my = (float)magCount[1]*mRes*magCalibration[1] - magbias[1];
-    mz = (float)magCount[2]*mRes*magCalibration[2] - magbias[2];
-    //}
+      mpu9250.readMagData (magCount);  // Read the x/y/z adc values
+      // Calculate the magnetometer values in milliGauss
+      // Include factory calibration per data sheet and user environmental corrections
+      mx = (float)magCount[0]*mRes*magCalibration[0] - magbias[0];  // get actual magnetometer value, this depends on scale being set
+      my = (float)magCount[1]*mRes*magCalibration[1] - magbias[1];
+      mz = (float)magCount[2]*mRes*magCalibration[2] - magbias[2];
 
-    // Pass gyro rate as rad/s
-    mpu9250.MadgwickQuaternionUpdate (ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f,  my,  mx, mz);
-    // mpu9250.MahonyQuaternionUpdate(ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f, my, mx, mz);
+      // Pass gyro rate as rad/s
+      mpu9250.MadgwickQuaternionUpdate (ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f,  my,  mx, mz);
+      // mpu9250.MahonyQuaternionUpdate(ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f, my, mx, mz);
 
-    // Serial print and/or display at 0.5 s rate independent of data rates
-    //delt_t = t.read_ms() - count;
-    //if (delt_t > 500) { // update LCD once per half-second independent of read rate
+      // Define output variables from updated quaternion---these are Tait-Bryan angles, commonly used in aircraft orientation.
+      // In this coordinate system, the positive z-axis is down toward Earth.
+      // Yaw is the angle between Sensor x-axis and Earth magnetic North (or true North if corrected for local declination, looking down on the sensor positive yaw is counterclockwise.
+      // Pitch is angle between sensor x-axis and Earth ground plane, toward the Earth is positive, up toward the sky is negative.
+      // Roll is angle between sensor y-axis and Earth ground plane, y-axis up is positive roll.
+      // These arise from the definition of the homogeneous rotation matrix constructed from quaternions.
+      // Tait-Bryan angles as well as Euler angles are non-commutative; that is, the get the correct orientation the rotations must be
+      // applied in the correct order which for this configuration is yaw, pitch, and then roll.
+      // For more see http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles which has additional links.
+      yaw   = atan2(2.f * (q[1] * q[2] + q[0] * q[3]), q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3]);
+      pitch = -asin(2.f * (q[1] * q[3] - q[0] * q[2]));
+      roll  = atan2(2.f * (q[0] * q[1] + q[2] * q[3]), q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3]);
+      pitch *= 180.f / PI;
 
-    printf ("ax = %f ay = %f az = %f mg\n", 1000*ax, 1000*ay, 1000*az);
-    printf ("gx = %f gy = %f gz = %f deg/s\n", gx, gy, gz);
-    printf ("mx = %f my = %f mz = %f mG\n", mx, my, mz);
+      yaw   *= 180.f / PI;
+      yaw   -= 65.1f;
+      roll  *= 180.f / PI;
 
-    auto tempCount = mpu9250.readTempData();  // Read the adc values
-    temperature = ((float)tempCount) / 333.87f + 21.0f; // Temperature in degrees Centigrade
-    printf (" temperature = %f  C\n", temperature);
+      //printf ("tick %d\n", took);
+      //printf ("ax = %f ay = %f az = %f mg\n", 1000.f * ax, 1000.f * ay, 1000.f * az);
+      //printf ("gx = %f gy = %f gz = %f deg/s\n", gx, gy, gz);
+      //printf ("mx = %f my = %f mz = %f mG\n", mx, my, mz);
+      //printf ("q0 = %f q1 = %f q2 = %f q3 = %f\n", q[0], q[1], q[2], q[3]);
+      //printf("Yaw, Pitch, Roll: %f %f %f\n", yaw, pitch, roll);
 
-    printf ("q0 = %f q1 = %f q2 = %f q3 = %f\n", q[0],q[1],q[2],q[3]);
-
-    // Define output variables from updated quaternion---these are Tait-Bryan angles, commonly used in aircraft orientation.
-    // In this coordinate system, the positive z-axis is down toward Earth.
-    // Yaw is the angle between Sensor x-axis and Earth magnetic North (or true North if corrected for local declination, looking down on the sensor positive yaw is counterclockwise.
-    // Pitch is angle between sensor x-axis and Earth ground plane, toward the Earth is positive, up toward the sky is negative.
-    // Roll is angle between sensor y-axis and Earth ground plane, y-axis up is positive roll.
-    // These arise from the definition of the homogeneous rotation matrix constructed from quaternions.
-    // Tait-Bryan angles as well as Euler angles are non-commutative; that is, the get the correct orientation the rotations must be
-    // applied in the correct order which for this configuration is yaw, pitch, and then roll.
-    // For more see http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles which has additional links.
-    yaw   = atan2(2.0f * (q[1] * q[2] + q[0] * q[3]), q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3]);
-    pitch = -asin(2.0f * (q[1] * q[3] - q[0] * q[2]));
-    roll  = atan2(2.0f * (q[0] * q[1] + q[2] * q[3]), q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3]);
-    pitch *= 180.0f / PI;
-
-    yaw   *= 180.0f / PI;
-    yaw   -= 13.8f; // Declination at Danville, California is 13 degrees 48 minutes and 47 seconds on 2014-04-04
-    roll  *= 180.0f / PI;
-    printf("Yaw, Pitch, Roll: %f %f %f\n", yaw, pitch, roll);
+      auto tempCount = mpu9250.readTempData();  // Read the adc values
+      temperature = ((float)tempCount) / 333.87f + 21.f; // Temperature in degrees Centigrade
+      gLcd->change();
+      }
     }
+  }
+//}}}
+//{{{
+void appThread1 (void* arg) {
 
   cPointF offset;
   int brightness = 100;

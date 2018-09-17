@@ -5,8 +5,11 @@ std::string dec (int num, int width, char fill) {
 
   std::string str;
   bool neg = num < 0;
-  if (neg)
+  if (neg) {
     num = -num;
+    if (width)
+      width--;
+    }
 
   while ((width > 0) || num) {
     str = char((num % 10) + 0x30) + str;
