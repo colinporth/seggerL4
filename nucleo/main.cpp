@@ -162,14 +162,17 @@ void uiThread (void* arg) {
       //}}}
       gLcd->text (kWhite, 30, gRtc->getClockTimeDateString(), cRect (0, 426, 320, 480));
 
-      gLcd->text (kWhite, 20,
-        dec (int(ax*1000.f),5,'0') + " " + dec (int(ay*1000.f),5,'0') + " " + dec (int(az*1000.f),5,'0') + " " + dec (took),
+      gLcd->text (kWhite, 20, "a " +
+        dec (accelCount[0],5,'0') + " " + dec (accelCount[1],5,'0') + " " + dec (accelCount[2],5,'0'),
+      //  dec (int(ax*1000.f),5,'0') + " " + dec (int(ay*1000.f),5,'0') + " " + dec (int(az*1000.f),5,'0'),
         cRect (0, 42, 320, 62));
-      gLcd->text (kWhite, 20,
-        dec (int(gx*1000.f),5,'0') + " " + dec (int(gy*1000.f),5,'0') + " " + dec (int(gz*1000.f),5,'0'),
+      gLcd->text (kWhite, 20, "g " +
+        dec (gyroCount[0],5,'0') + " " + dec (gyroCount[1],5,'0') + " " + dec (gyroCount[2],5,'0'),
+      //  dec (int(gx*1000.f),5,'0') + " " + dec (int(gy*1000.f),5,'0') + " " + dec (int(gz*1000.f),5,'0'),
         cRect (0, 62, 320, 82));
-      gLcd->text (kWhite, 20,
-        dec (int(mx),5,'0') + " " + dec (int(my),5,'0') + " " + dec (int(mz),5,'0'),
+      gLcd->text (kWhite, 20, "m " +
+        dec (magCount[0],5,'0') + " " + dec (magCount[1],5,'0') + " " + dec (magCount[2],5,'0'),
+      //  dec (int(mx),5,'0') + " " + dec (int(my),5,'0') + " " + dec (int(mz),5,'0'),
         cRect (0, 82, 320, 102));
       gLcd->text (kWhite, 20,
         dec (int(yaw),5,'0') + " " + dec (int(pitch),5,'0') + " " + dec (int(roll),5,'0'),
@@ -194,6 +197,7 @@ void appThread (void* arg) {
   mpu9250.init();
   mpu9250.resetMPU9250(); // Reset registers to default in preparation for device calibration
   mpu9250.calibrateMPU9250 (gyroBias, accelBias); // Calibrate gyro and accelerometers, load biases in bias registers
+
   printf ("x gyro bias %f\n", gyroBias[0]);
   printf ("y gyro bias %f\n", gyroBias[1]);
   printf ("z gyro bias %f\n", gyroBias[2]);
@@ -205,6 +209,7 @@ void appThread (void* arg) {
   printf("MPU9250 initialized for active data mode....\n"); // Initialize device for active mode read of acclerometer, gyroscope, and temperature
 
   mpu9250.initAK8963 (magCalibration);
+
   printf ("AK8963 initialized for active data mode....\n"); // Initialize device for active mode read of magnetometer
   printf ("Accelerometer full-scale range = %f  g\n", 2.f * (float)(1 << Ascale));
   printf ("Gyroscope full-scale range = %f  deg/s\n", 250.f * (float)(1 << Gscale));
@@ -258,15 +263,14 @@ void appThread (void* arg) {
       mpu9250.MadgwickQuaternionUpdate (ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f,  my,  mx, mz);
       // mpu9250.MahonyQuaternionUpdate(ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f, my, mx, mz);
 
-      // Define output variables from updated quaternion---these are Tait-Bryan angles, commonly used in aircraft orientation.
-      // In this coordinate system, the positive z-axis is down toward Earth.
-      // Yaw is the angle between Sensor x-axis and Earth magnetic North (or true North if corrected for local declination, looking down on the sensor positive yaw is counterclockwise.
-      // Pitch is angle between sensor x-axis and Earth ground plane, toward the Earth is positive, up toward the sky is negative.
-      // Roll is angle between sensor y-axis and Earth ground plane, y-axis up is positive roll.
+      // output vars from quaternion, Tait-Bryan angles
+      // - positive z-axis is down toward Earth.
+      // - Yaw is the angle between Sensor x-axis and Earth magnetic North (or true North if corrected for local declination, looking down on the sensor positive yaw is counterclockwise.
+      // - Pitch angle between sensor x-axis and Earth ground plane, toward Earth positive, up sky is negative.
+      // - Roll  angle between sensor y-axis and Earth ground plane, y-axis up is positive roll.
       // These arise from the definition of the homogeneous rotation matrix constructed from quaternions.
-      // Tait-Bryan angles as well as Euler angles are non-commutative; that is, the get the correct orientation the rotations must be
-      // applied in the correct order which for this configuration is yaw, pitch, and then roll.
-      // For more see http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles which has additional links.
+      // Tait-Bryan angles as well as Euler angles are non-commutative, yaw, pitch, then roll.
+      // http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
       yaw   = atan2(2.f * (q[1] * q[2] + q[0] * q[3]), q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3]);
       pitch = -asin(2.f * (q[1] * q[3] - q[0] * q[2]));
       roll  = atan2(2.f * (q[0] * q[1] + q[2] * q[3]), q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3]);
@@ -291,47 +295,47 @@ void appThread (void* arg) {
   }
 //}}}
 //{{{
-void appThread1 (void* arg) {
+//void appThread (void* arg) {
 
-  cPointF offset;
-  int brightness = 100;
+  //cPointF offset;
+  //int brightness = 100;
 
-  while (true) {
-    gTouch->start();
-    gTouch->wait();
+  //while (true) {
+    //gTouch->start();
+    //gTouch->wait();
 
-    if (gTouch->getState() == cTouch::ePress) {
-      if (gTouch->getPressed()) {
-        if (mMove == eNotPressed) {
-          brightness = 100;
-          gLcd->display (brightness);
-          if ((mCentre - gTouch->getPos()).magnitude() < mRadius-4.f) {
-            mMove = eMoveCentre;
-            offset = gTouch->getPos() - mCentre;
-            }
-          else if ((mCentre - gTouch->getPos()).magnitude() < mRadius+24.f)
-            mMove = eMoveRadius;
-          else
-            mMove = ePressed;
-          }
+    //if (gTouch->getState() == cTouch::ePress) {
+      //if (gTouch->getPressed()) {
+        //if (mMove == eNotPressed) {
+          //brightness = 100;
+          //gLcd->display (brightness);
+          //if ((mCentre - gTouch->getPos()).magnitude() < mRadius-4.f) {
+            //mMove = eMoveCentre;
+            //offset = gTouch->getPos() - mCentre;
+            //}
+          //else if ((mCentre - gTouch->getPos()).magnitude() < mRadius+24.f)
+            //mMove = eMoveRadius;
+          //else
+            //mMove = ePressed;
+          //}
 
-        if (mMove == eMoveCentre)
-          mCentre = gTouch->getPos() - offset;
-        else if (mMove == eMoveRadius)
-          mRadius = (mCentre - gTouch->getPos()).magnitude();
+        //if (mMove == eMoveCentre)
+          //mCentre = gTouch->getPos() - offset;
+        //else if (mMove == eMoveRadius)
+          //mRadius = (mCentre - gTouch->getPos()).magnitude();
 
-        gLcd->change();
-        vTaskDelay (1);
-        }
-      else {
-        mMove = eNotPressed;
-        if (brightness > 0)
-          gLcd->display (--brightness);
-        vTaskDelay (50);
-        }
-      }
-    }
-  }
+        //gLcd->change();
+        //vTaskDelay (1);
+        //}
+      //else {
+        //mMove = eNotPressed;
+        //if (brightness > 0)
+          //gLcd->display (--brightness);
+        //vTaskDelay (50);
+        //}
+      //}
+    //}
+  //}
 //}}}
 
 int main() {
